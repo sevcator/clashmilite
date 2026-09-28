@@ -18,6 +18,7 @@ object SubscriptionRepository {
         connection.setRequestProperty("User-Agent", settings.userAgent.ifBlank { "MiniClash/0.1.1 Android" })
         connection.setRequestProperty("Accept", "*/*")
         connection.setRequestProperty("Accept-Language", Locale.getDefault().toLanguageTag())
+        connection.setRequestProperty("X-Device-Locale", Locale.getDefault().language)
         if (settings.sendHwid) {
             val hwid = settings.hwid.ifBlank { Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID).orEmpty() }
             connection.setRequestProperty("X-HWID", hwid)
