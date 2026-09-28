@@ -2,10 +2,11 @@ package org.sevcator.miniclash
 
 import android.net.Uri
 import android.util.Base64
+import org.json.JSONArray
+import org.json.JSONObject
 import org.yaml.snakeyaml.LoaderOptions
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
-import java.net.URLDecoder
 
 data class ImportedProfile(val proxies: List<MutableMap<String, Any>>, val name: String = "")
 
@@ -19,13 +20,14 @@ object SubscriptionCodec {
     fun parse(raw: String): ImportedProfile {
         val text = raw.trim().removePrefix("\uFEFF")
         if (text.isEmpty()) throw IllegalArgumentException("Subscription is empty")
+        if (text.startsWith("{") || text.startsWith("[")) return unique(parseJson(text))
         if (text.startsWith("proxies:") || text.contains("\nproxies:")) {
             val yaml = Yaml(SafeConstructor(LoaderOptions()))
             val root = yaml.load<Any>(text) as? Map<*, *> ?: error("Invalid Clash profile")
             val proxies = root["proxies"] as? List<*> ?: error("No proxies in Clash profile")
-            return ImportedProfile(proxies.mapNotNull { entry ->
+            return unique(ImportedProfile(proxies.mapNotNull { entry ->
                 (entry as? Map<*, *>)?.entries?.associate { it.key.toString() to (it.value ?: "") }?.toMutableMap()
-            })
+            }))
         }
         val plain = if (schemes.none { text.startsWith(it, true) } && !text.contains("://"))
             runCatching { decode(text) }.getOrDefault(text) else text
@@ -34,7 +36,105 @@ object SubscriptionCodec {
             if (schemes.any { trimmed.startsWith(it, true) }) runCatching { parseLink(trimmed) }.getOrNull() else null
         }
         if (proxies.isEmpty()) throw IllegalArgumentException("No supported servers found in subscription")
+        return unique(ImportedProfile(proxies))
+    }
+
+    private fun unique(profile: ImportedProfile): ImportedProfile {
+        val names = mutableSetOf<String>()
+        profile.proxies.forEach { proxy ->
+            val base = proxy["name"]?.toString()?.ifBlank { null } ?: proxy["server"]?.toString() ?: "Server"
+            var name = base
+            var suffix = 2
+            while (!names.add(name)) { name = "$base ($suffix)"; suffix++ }
+            proxy["name"] = name
+        }
+        return profile
+    }
+
+    private fun parseJson(text: String): ImportedProfile {
+        val documents = if (text.startsWith("[")) JSONArray(text) else JSONArray().put(JSONObject(text))
+        val proxies = mutableListOf<MutableMap<String, Any>>()
+        for (i in 0 until documents.length()) {
+            val document = documents.optJSONObject(i) ?: continue
+            val clashProxies = document.optJSONArray("proxies")
+            if (clashProxies != null) {
+                for (j in 0 until clashProxies.length()) {
+                    val entry = clashProxies.optJSONObject(j) ?: continue
+                    proxies += jsonToMap(entry)
+                }
+                continue
+            }
+            val outbounds = document.optJSONArray("outbounds") ?: continue
+            for (j in 0 until outbounds.length()) {
+                val outbound = outbounds.optJSONObject(j) ?: continue
+                runCatching { parseXrayOutbound(outbound) }.getOrNull()?.let { proxies += it }
+            }
+        }
+        if (proxies.isEmpty()) error("No supported servers found in JSON profile")
         return ImportedProfile(proxies)
+    }
+
+    private fun jsonToMap(objectValue: JSONObject): MutableMap<String, Any> = mutableMapOf<String, Any>().apply {
+        objectValue.keys().forEach { key ->
+            val value = objectValue.get(key)
+            put(key, when (value) {
+                is JSONObject -> jsonToMap(value)
+                is JSONArray -> (0 until value.length()).map { index ->
+                    val item = value.get(index)
+                    if (item is JSONObject) jsonToMap(item) else item
+                }
+                else -> value
+            })
+        }
+    }
+
+    private fun parseXrayOutbound(outbound: JSONObject): MutableMap<String, Any> {
+        val protocol = outbound.optString("protocol").lowercase()
+        val settings = outbound.optJSONObject("settings") ?: error("Missing Xray settings")
+        val stream = outbound.optJSONObject("streamSettings")
+        val endpoint = when (protocol) {
+            "vless", "vmess" -> settings.getJSONArray("vnext").getJSONObject(0)
+            "trojan", "shadowsocks" -> settings.getJSONArray("servers").getJSONObject(0)
+            else -> error("Unsupported Xray protocol")
+        }
+        val proxy = mutableMapOf<String, Any>(
+            "name" to outbound.optString("tag", "$protocol ${endpoint.getString("address")}"),
+            "server" to endpoint.getString("address"), "port" to endpoint.getInt("port"),
+            "type" to if (protocol == "shadowsocks") "ss" else protocol)
+        when (protocol) {
+            "vless", "vmess" -> {
+                val user = endpoint.getJSONArray("users").getJSONObject(0)
+                proxy["uuid"] = user.getString("id")
+                if (protocol == "vless") proxy["flow"] = user.optString("flow")
+                else { proxy["alterId"] = user.optInt("alterId", 0); proxy["cipher"] = user.optString("security", "auto") }
+            }
+            "trojan" -> proxy["password"] = endpoint.getString("password")
+            "shadowsocks" -> { proxy["password"] = endpoint.getString("password"); proxy["cipher"] = endpoint.getString("method") }
+        }
+        proxy["udp"] = true
+        val security = stream?.optString("security").orEmpty()
+        if (security == "tls" || security == "reality") proxy["tls"] = true
+        if (security == "reality") stream?.optJSONObject("realitySettings")?.let {
+            proxy["reality-opts"] = mapOf("public-key" to it.optString("publicKey"), "short-id" to it.optString("shortId"))
+            if (it.optString("fingerprint").isNotBlank()) proxy["client-fingerprint"] = it.getString("fingerprint")
+            if (it.optString("serverName").isNotBlank()) proxy["servername"] = it.getString("serverName")
+        }
+        if (security == "tls") stream?.optJSONObject("tlsSettings")?.let {
+            if (it.optString("serverName").isNotBlank()) proxy["servername"] = it.getString("serverName")
+            if (it.optString("fingerprint").isNotBlank()) proxy["client-fingerprint"] = it.getString("fingerprint")
+            if (it.optBoolean("allowInsecure")) proxy["skip-cert-verify"] = true
+        }
+        stream?.optString("network")?.takeIf { it.isNotBlank() && it != "tcp" }?.let { network ->
+            proxy["network"] = network
+            if (network == "ws") stream?.optJSONObject("wsSettings")?.let {
+                proxy["ws-opts"] = mapOf("path" to it.optString("path", "/"),
+                    "headers" to jsonToMap(it.optJSONObject("headers") ?: JSONObject()))
+            }
+            if (network == "grpc") stream?.optJSONObject("grpcSettings")?.let {
+                proxy["grpc-opts"] = mapOf("grpc-service-name" to it.optString("serviceName"))
+            }
+        }
+        return proxy
     }
 
     private fun parseLink(link: String): MutableMap<String, Any> {

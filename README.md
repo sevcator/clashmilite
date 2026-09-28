@@ -4,7 +4,7 @@ Mini Clash is a small Android VPN and proxy manager built around a patched [Miho
 
 ## Android app
 
-- Import a Clash YAML profile or a plain/Base64 subscription of VLESS, VMess, Trojan, Shadowsocks, Hysteria2, SOCKS5, and WireGuard links.
+- Import a Clash YAML/JSON profile, a common Xray JSON outbound profile, or a plain/Base64 subscription of VLESS, VMess, Trojan, Shadowsocks, Hysteria2, SOCKS5, HTTP proxy, and WireGuard links.
 - Add and refresh URL subscriptions. Show provider title, description, traffic usage, expiration, and support URL when supplied by subscription headers or body metadata.
 - Choose a server and add extra hops on the home screen. `GLOBAL → VLESS → WARP` configures WARP with `dialer-proxy: VLESS` in Mihomo.
 - Start Android TUN with system VPN consent, or run only the local mixed HTTP/SOCKS proxy.
@@ -13,7 +13,7 @@ Mini Clash is a small Android VPN and proxy manager built around a patched [Miho
 
 The HWID default is Android's `ANDROID_ID`, matching Happ 4.4.1. Mini Clash sends it only when **Send HWID to subscription** is enabled. A manual value can override it. The app sends `X-HWID`, `X-Device-ID`, and device headers; it does not reproduce Happ's private `X-Credential` token.
 
-Current import scope: standard link lists and Clash YAML. Plain `happ://add/` and `incy://add/` links and INCY's public `incy://crypt1` format are accepted. Encrypted `happ://crypt*` links, Xray JSON subscriptions, and AmneziaWG links need separate decoders and are not accepted yet. Do not expect providers that require those formats or Happ's private credential token to work. No Android device or emulator connection run has been completed yet.
+Current import scope: standard link lists, Clash YAML/JSON, and VLESS, VMess, Trojan, and Shadowsocks outbounds from Xray JSON. Plain `happ://add/` and `incy://add/` links and INCY's public `incy://crypt1` format are accepted. Encrypted `happ://crypt*` links, advanced Xray JSON routing, and AmneziaWG links need separate support and are not accepted yet. Do not expect providers that require those formats or Happ's private credential token to work. No Android device or emulator connection run has been completed yet.
 
 ## Build Android APK
 

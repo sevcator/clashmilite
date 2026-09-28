@@ -1,4 +1,4 @@
-﻿package org.sevcator.miniclash
+package org.sevcator.miniclash
 
 import android.app.Activity
 import android.app.AlertDialog
@@ -15,7 +15,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
@@ -41,6 +43,8 @@ class MainActivity : Activity() {
         store = Store(this)
         render()
         importIntent(intent)
+        store.subscriptions.firstOrNull { it.id == store.activeId && it.url.isNotBlank() && System.currentTimeMillis() - it.lastUpdated > 6 * 60 * 60 * 1000L }
+            ?.let { refresh(it, false) }
     }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); importIntent(intent) }
@@ -135,8 +139,14 @@ class MainActivity : Activity() {
         val chainCard = card()
         chainCard.addView(text("ROUTE", 12f, muted, true))
         chainCard.addView(spacer(12))
-        val chainLabel = "GLOBAL  â†’  " + store.chain.joinToString("  â†’  ").ifBlank { "Choose a server" }
-        chainCard.addView(text(chainLabel, 17f, inkColor, true))
+        val route = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        route.addView(text("GLOBAL", 16f, accent, true))
+        store.chain.forEachIndexed { index, hop ->
+            route.addView(text("  ->  ", 17f, muted))
+            route.addView(action(hop) { chooseReplacement(index) })
+        }
+        if (store.chain.isEmpty()) route.addView(text("  ->  Choose a server", 16f, muted))
+        chainCard.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(route) })
         chainCard.addView(spacer(13))
         chainCard.addView(action("+  Add next hop") { chooseHop() })
         if (store.chain.isNotEmpty()) chainCard.addView(action("Remove last hop") {
@@ -159,8 +169,20 @@ class MainActivity : Activity() {
                 addView(text(sub.title.ifBlank { "Subscription" }, 19f, inkColor, true))
                 if (sub.description.isNotBlank()) addView(text(sub.description, 13f, muted))
                 val count = runCatching { SubscriptionCodec.parse(sub.content).proxies.size }.getOrDefault(0)
-                addView(text("$count servers" + if (sub.id == store.activeId) "  Â·  Active" else "", 13f, accent))
-                if (sub.userInfo.isNotBlank()) addView(text(formatUserInfo(sub.userInfo), 12f, muted))
+                addView(text("$count servers" + if (sub.id == store.activeId) "  |  Active" else "", 13f, accent))
+                if (sub.userInfo.isNotBlank()) {
+                    addView(spacer(8))
+                    addView(text(formatUserInfo(sub.userInfo), 12f, muted))
+                    val values = sub.userInfo.split(';').mapNotNull { item ->
+                        item.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0].trim() to it[1].trim() }
+                    }.toMap()
+                    val total = values["total"]?.toLongOrNull() ?: 0L
+                    val used = (values["upload"]?.toLongOrNull() ?: 0L) + (values["download"]?.toLongOrNull() ?: 0L)
+                    if (total > 0) addView(ProgressBar(this@MainActivity, null, android.R.attr.progressBarStyleHorizontal).apply {
+                        max = 100; progress = (used * 100 / total).coerceIn(0, 100).toInt()
+                        progressTintList = android.content.res.ColorStateList.valueOf(accent)
+                    })
+                }
                 addView(spacer(10))
                 addView(action("Use") { store.activeId = sub.id; store.chain.clear(); store.save(); page = "home"; render() })
                 if (sub.url.isNotBlank()) addView(action("Refresh") { refresh(sub) })
@@ -185,14 +207,14 @@ class MainActivity : Activity() {
         val used = (values["upload"]?.toLongOrNull() ?: 0L) + (values["download"]?.toLongOrNull() ?: 0L)
         val traffic = if (total > 0) "%.1f / %.1f GB".format(used / 1e9, total / 1e9) else "Traffic: unlimited"
         val expiry = values["expire"]?.toLongOrNull()?.takeIf { it > 0 }?.let {
-            " Â· Expires " + java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(it * 1000))
+            " | Expires " + java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(it * 1000))
         }.orEmpty()
         return traffic + expiry
     }
 
     private fun showAdd(initial: String) {
         val input = EditText(this).apply {
-            setText(initial); hint = "https://â€¦ or vless://â€¦"; minLines = 2; maxLines = 8
+            setText(initial); hint = "https://... or vless://..."; minLines = 2; maxLines = 8
             setPadding(dp(20), dp(16), dp(20), dp(16))
         }
         AlertDialog.Builder(this).setTitle("Add to Mini Clash").setView(input)
@@ -222,8 +244,8 @@ class MainActivity : Activity() {
         } catch (exception: Exception) { message(exception.message ?: "Import failed") }
     }
 
-    private fun refresh(sub: Subscription) {
-        message("Refreshing ${sub.title}")
+    private fun refresh(sub: Subscription, announce: Boolean = true) {
+        if (announce) message("Refreshing ${sub.title}")
         worker.execute {
             try {
                 val parsed = SubscriptionRepository.refresh(this, sub, store.settings)
@@ -246,6 +268,16 @@ class MainActivity : Activity() {
         if (servers.isEmpty()) return message("No more servers available")
         AlertDialog.Builder(this).setTitle("Choose next hop").setItems(servers.toTypedArray()) { _, index ->
             store.chain += servers[index]; store.save(); render()
+        }.show()
+    }
+
+    private fun chooseReplacement(index: Int) {
+        val sub = store.subscriptions.firstOrNull { it.id == store.activeId } ?: return
+        val choices = runCatching { SubscriptionCodec.parse(sub.content).proxies.map { it["name"].toString() } }
+            .getOrElse { return message(it.message ?: "Profile unavailable") }
+            .filter { it == store.chain[index] || it !in store.chain }
+        AlertDialog.Builder(this).setTitle("Change hop ${index + 1}").setItems(choices.toTypedArray()) { _, choice ->
+            store.chain[index] = choices[choice]; store.save(); render()
         }.show()
     }
 
@@ -311,7 +343,7 @@ class MainActivity : Activity() {
             })
         })
         addCard(action("Save settings", true) {
-            if (s.port.isNotBlank() && s.port.toIntOrNull()?.let { it in 1..65535 } != true) return@action message("Port must be 1â€“65535")
+            if (s.port.isNotBlank() && s.port.toIntOrNull()?.let { it in 1..65535 } != true) return@action message("Port must be 1-65535")
             store.save(); message("Settings saved")
         })
     }
@@ -345,4 +377,3 @@ class MainActivity : Activity() {
     private fun message(value: String) = android.widget.Toast.makeText(this, value, android.widget.Toast.LENGTH_LONG).show()
     override fun onDestroy() { worker.shutdown(); super.onDestroy() }
 }
-
