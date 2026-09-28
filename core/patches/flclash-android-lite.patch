@@ -1,8 +1,8 @@
 diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
-index 276fbd8..fee349d 100644
+index 276fbd8..9226dd7 100644
 --- a/android/app/build.gradle.kts
 +++ b/android/app/build.gradle.kts
-@@ -46,12 +46,12 @@ android {
+@@ -46,13 +46,13 @@ android {
      }
  
      defaultConfig {
@@ -13,30 +13,36 @@ index 276fbd8..fee349d 100644
          versionCode = flutter.versionCode
          versionName = flutter.versionName
 -        manifestPlaceholders["appLabel"] = "FlClash"
+-        manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
 +        manifestPlaceholders["appLabel"] = "Clash Mi Lite"
-         manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
++        manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_lite"
          buildConfigField(
              "String", "BUNDLED_MIHOMO_VERSION",
-@@ -80,7 +80,7 @@ android {
+             "\"${aarBundledVersion("../core/libs", "libmihomo-android-v")}\"",
+@@ -80,8 +80,8 @@ android {
          debug {
              isMinifyEnabled = false
              applicationIdSuffix = ".dev"
 -            manifestPlaceholders["appLabel"] = "FlClash Dev"
+-            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
 +            manifestPlaceholders["appLabel"] = "Clash Mi Lite"
-             manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
++            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_lite"
          }
  
-@@ -92,7 +92,7 @@ android {
+         release {
+@@ -92,8 +92,8 @@ android {
              } else {
                  signingConfig = signingConfigs.getByName("debug")
                  applicationIdSuffix = ".dev"
 -                manifestPlaceholders["appLabel"] = "FlClash Dev"
+-                manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
 +                manifestPlaceholders["appLabel"] = "Clash Mi Lite"
-                 manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
++                manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_lite"
              }
  
+             proguardFiles(
 diff --git a/lib/application.dart b/lib/application.dart
-index a3b5f90..af204a8 100644
+index a3b5f90..d57730d 100644
 --- a/lib/application.dart
 +++ b/lib/application.dart
 @@ -36,7 +36,18 @@ class ApplicationState extends ConsumerState<Application> {
@@ -54,7 +60,7 @@ index a3b5f90..af204a8 100644
 +          : const Color(0xFFB9B2FF),
 +      surface: brightness == Brightness.light
 +          ? const Color(0xFFF5F5F7)
-+          : const Color(0xFF101015),
++          : const Color(0xFF211F53),
 +    );
    }
  

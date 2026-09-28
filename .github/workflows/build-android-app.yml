@@ -8,6 +8,7 @@ on:
       - core/build-android-app.sh
       - core/patches/flclash-android-lite.patch
       - core/patches/mihomo-reality-client-version.patch
+      - android/app/src/main/res/mipmap-*/ic_launcher.png
       - .github/workflows/build-android-app.yml
 
 jobs:

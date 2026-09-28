@@ -28,6 +28,11 @@ fetch_revision https://github.com/MetaCubeX/mihomo.git "$core_rev" "$work_root/m
 git -C "$work_root/app" apply "$repo_root/core/patches/flclash-android-lite.patch"
 git -C "$work_root/mihomo" apply "$repo_root/core/patches/mihomo-reality-client-version.patch"
 
+for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+  cp "$repo_root/android/app/src/main/res/mipmap-$density/ic_launcher.png" \
+    "$work_root/app/android/app/src/main/res/mipmap-$density/ic_launcher_lite.png"
+done
+
 go -C "$work_root/wrapper/src/main/jni/core" mod edit \
   -replace "github.com/metacubex/mihomo=$work_root/mihomo"
 
