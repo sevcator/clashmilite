@@ -41,6 +41,56 @@ index 276fbd8..9226dd7 100644
              }
  
              proguardFiles(
+diff --git a/android/app/src/main/res/drawable/ic_launcher_foreground.xml b/android/app/src/main/res/drawable/ic_launcher_foreground.xml
+index cc39282..07d5a5a 100644
+--- a/android/app/src/main/res/drawable/ic_launcher_foreground.xml
++++ b/android/app/src/main/res/drawable/ic_launcher_foreground.xml
+@@ -1,25 +1,22 @@
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+-        android:width="108dp"
+-        android:height="108dp"
+-        android:viewportWidth="240"
+-        android:viewportHeight="240">
+-    <group android:scaleX="0.924"
+-           android:scaleY="0.924"
+-           android:translateX="9.12"
+-           android:translateY="9.12">
+-        <group android:scaleX="0.63461536"
+-               android:scaleY="0.63461536"
+-               android:translateX="45.96154"
+-               android:translateY="43.846153">
+-            <path
+-                    android:pathData="M60.65,89.6L154.18,35.6A18,18 107.59,0 1,178.77 42.19L178.77,42.19A18,18 107.59,0 1,172.18 66.78L78.65,120.78A18,18 106.67,0 1,54.06 114.19L54.06,114.19A18,18 106.67,0 1,60.65 89.6z"
+-                    android:fillColor="#6666FB"/>
+-            <path
+-                    android:pathData="M84.65,131.17L131.42,104.17A18,18 107.83,0 1,156 110.76L156,110.76A18,18 107.83,0 1,149.42 135.35L102.65,162.35A18,18 106.67,0 1,78.06 155.76L78.06,155.76A18,18 106.67,0 1,84.65 131.17z"
+-                    android:fillColor="#336AB6"/>
+-            <path
+-                    android:pathData="M108.65,172.74L108.65,172.74A18,18 116.03,0 1,133.24 179.33L133.24,179.33A18,18 116.03,0 1,126.65 203.92L126.65,203.92A18,18 116.03,0 1,102.06 197.33L102.06,197.33A18,18 116.03,0 1,108.65 172.74z"
+-                    android:fillColor="#5CA8E9"/>
+-        </group>
+-    </group>
++    android:width="108dp"
++    android:height="108dp"
++    android:viewportWidth="108"
++    android:viewportHeight="108">
++    <path
++        android:fillColor="#00000000"
++        android:strokeColor="#204775"
++        android:strokeWidth="4.5"
++        android:strokeLineCap="round"
++        android:strokeLineJoin="round"
++        android:pathData="M25,77 L31,24 L40,34 Q54,28 68,34 L77,24 L83,77 Q54,82 25,77 Z" />
++    <path
++        android:fillColor="#00000000"
++        android:strokeColor="#204775"
++        android:strokeWidth="4"
++        android:strokeLineCap="round"
++        android:pathData="M43,52 L47,52 M61,52 L65,52 M31,62 L44,65 M31,69 L44,69 M77,62 L64,65 M77,69 L64,69" />
++    <path
++        android:fillColor="#204775"
++        android:pathData="M50,58 L58,58 L54,64 Z" />
+ </vector>
 diff --git a/android/app/src/main/res/layout/vpn_widget.xml b/android/app/src/main/res/layout/vpn_widget.xml
 index 2ea35f3..a3486a8 100644
 --- a/android/app/src/main/res/layout/vpn_widget.xml
