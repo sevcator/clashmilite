@@ -35,6 +35,68 @@ index 276fbd8..fee349d 100644
                  manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
              }
  
+diff --git a/lib/application.dart b/lib/application.dart
+index a3b5f90..af204a8 100644
+--- a/lib/application.dart
++++ b/lib/application.dart
+@@ -36,7 +36,18 @@ class ApplicationState extends ConsumerState<Application> {
+     required Brightness brightness,
+     int? primaryColor,
+   }) {
+-    return ref.read(genColorSchemeProvider(brightness));
++    final scheme = ColorScheme.fromSeed(
++      seedColor: const Color(0xFF7C71FF),
++      brightness: brightness,
++    );
++    return scheme.copyWith(
++      primary: brightness == Brightness.light
++          ? const Color(0xFF7C71FF)
++          : const Color(0xFFB9B2FF),
++      surface: brightness == Brightness.light
++          ? const Color(0xFFF5F5F7)
++          : const Color(0xFF101015),
++    );
+   }
+ 
+   @override
+@@ -133,6 +144,18 @@ class ApplicationState extends ConsumerState<Application> {
+           themeMode: themeProps.themeMode,
+           theme: ThemeData(
+             useMaterial3: true,
++            fontFamily: 'JetBrainsMono',
++            filledButtonTheme: FilledButtonThemeData(
++              style: FilledButton.styleFrom(
++                shape: RoundedRectangleBorder(
++                  borderRadius: BorderRadius.circular(16),
++                ),
++                padding: const EdgeInsets.symmetric(
++                  horizontal: 20,
++                  vertical: 15,
++                ),
++              ),
++            ),
+             pageTransitionsTheme: _pageTransitionsTheme,
+             colorScheme: _getAppColorScheme(
+               brightness: Brightness.light,
+@@ -141,6 +164,18 @@ class ApplicationState extends ConsumerState<Application> {
+           ),
+           darkTheme: ThemeData(
+             useMaterial3: true,
++            fontFamily: 'JetBrainsMono',
++            filledButtonTheme: FilledButtonThemeData(
++              style: FilledButton.styleFrom(
++                shape: RoundedRectangleBorder(
++                  borderRadius: BorderRadius.circular(16),
++                ),
++                padding: const EdgeInsets.symmetric(
++                  horizontal: 20,
++                  vertical: 15,
++                ),
++              ),
++            ),
+             pageTransitionsTheme: _pageTransitionsTheme,
+             colorScheme: _getAppColorScheme(
+               brightness: Brightness.dark,
 diff --git a/lib/common/constant.dart b/lib/common/constant.dart
 index 9b830d0..e4a4622 100644
 --- a/lib/common/constant.dart
@@ -100,6 +162,18 @@ index bb97eed..da82f81 100644
      _ref.read(initProvider.notifier).value = true;
    }
  
+diff --git a/lib/controllers/profiles_controller.dart b/lib/controllers/profiles_controller.dart
+index 49cc992..a6a1041 100644
+--- a/lib/controllers/profiles_controller.dart
++++ b/lib/controllers/profiles_controller.dart
+@@ -215,7 +215,6 @@ extension ProfilesControllerExt on AppController {
+     _ref.read(currentProfileIdProvider.notifier).value = profile.id;
+     await applyProfile(force: true);
+     await updateStatus(true);
+-    unawaited(_ref.read(quickStartVerificationProvider.notifier).run());
+   }
+ 
+   Future<Uint8List?> _quickStartBytes(String text) async {
 diff --git a/lib/controllers/setup_controller.dart b/lib/controllers/setup_controller.dart
 index f1a4b57..1ff785e 100644
 --- a/lib/controllers/setup_controller.dart
@@ -113,6 +187,216 @@ index f1a4b57..1ff785e 100644
      }
      await onConfigApplied?.call();
      addCheckIp();
+diff --git a/lib/views/dashboard/dashboard.dart b/lib/views/dashboard/dashboard.dart
+index ae06014..9d8e58c 100644
+--- a/lib/views/dashboard/dashboard.dart
++++ b/lib/views/dashboard/dashboard.dart
+@@ -7,13 +7,13 @@ import 'package:fl_clash/controller.dart';
+ import 'package:fl_clash/enum/enum.dart';
+ import 'package:fl_clash/providers/providers.dart';
+ import 'package:fl_clash/state.dart';
++import 'package:fl_clash/views/profiles/add.dart';
+ import 'package:fl_clash/widgets/widgets.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import 'widgets/widgets.dart' as dash;
+ import 'widgets/hero.dart';
+-import 'widgets/quickstart_verify.dart';
+ 
+ GridItem _buildDashboardItem(DashboardWidget kind) => GridItem(
+   key: ValueKey(kind),
+@@ -53,6 +53,17 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+   final _addedWidgetsNotifier = ValueNotifier<List<GridItem>>([]);
+   final _detailsOpenNotifier = ValueNotifier<bool>(false);
+ 
++  void _showAddProfile() {
++    showExtend(
++      context,
++      builder: (_, type) => AdaptiveSheetScaffold(
++        type: type,
++        title: appLocalizations.addProfile,
++        body: AddProfileView(context: context),
++      ),
++    );
++  }
++
+   @override
+   void dispose() {
+     _isEditNotifier.dispose();
+@@ -279,8 +290,26 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+     });
+     return _buildIsEdit(
+       (isEdit) => CommonScaffold(
+-        title: appLocalizations.dashboard,
+-        actions: _buildActions(isEdit),
++        appBar: isEdit
++            ? null
++            : AppBar(
++                leading: IconButton(
++                  tooltip: appLocalizations.settings,
++                  onPressed: () => appController.toPage(PageLabel.tools),
++                  icon: const Icon(Icons.settings_outlined),
++                ),
++                title: const Text('Clash Mi Lite'),
++                centerTitle: true,
++                actions: [
++                  IconButton(
++                    tooltip: appLocalizations.addProfile,
++                    onPressed: _showAddProfile,
++                    icon: const Icon(Icons.add_rounded),
++                  ),
++                ],
++              ),
++        title: isEdit ? appLocalizations.dashboard : null,
++        actions: isEdit ? _buildActions(isEdit) : null,
+         body: Align(
+           alignment: Alignment.topCenter,
+           child: SingleChildScrollView(
+@@ -307,7 +336,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+                 : Column(
+                     children: [
+                       const DashboardHero(),
+-                      const QuickStartVerifyOverlay(),
+                       const SizedBox(height: 10),
+                       DashboardDetailsSection(
+                         openNotifier: _detailsOpenNotifier,
+diff --git a/lib/views/dashboard/widgets/hero.dart b/lib/views/dashboard/widgets/hero.dart
+index 93be822..b9e50ed 100644
+--- a/lib/views/dashboard/widgets/hero.dart
++++ b/lib/views/dashboard/widgets/hero.dart
+@@ -2,6 +2,7 @@ import 'package:fl_clash/common/common.dart';
+ import 'package:fl_clash/controller.dart';
+ import 'package:fl_clash/enum/enum.dart';
+ import 'package:fl_clash/models/common.dart';
++import 'package:fl_clash/pages/scan.dart';
+ import 'package:fl_clash/providers/database.dart';
+ import 'package:fl_clash/providers/providers.dart';
+ import 'package:fl_clash/views/profiles/add.dart';
+@@ -14,24 +15,82 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ class DashboardHero extends ConsumerWidget {
+   const DashboardHero({super.key});
+ 
++  Future<void> _scanQr(BuildContext context) async {
++    final value = await BaseNavigator.push(context, const ScanPage());
++    if (value != null) {
++      appController.addProfileFromText(value);
++    }
++  }
++
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+     final hasProfile = ref.watch(
+       profilesProvider.select((profiles) => profiles.isNotEmpty),
+     );
+     if (!hasProfile) {
+-      // No profile yet: an active Connect button would just fail to start the
+-      // tunnel. Offer the paste on-ramp instead of an empty first-run dead-end.
+-      return Padding(
+-        padding: const EdgeInsets.symmetric(vertical: 24),
+-        child: NullStatus(
+-          label: appLocalizations.quickStartPasteHint,
+-          illustration: const ProfileEmptyIllustration(),
+-          action: FilledButton.icon(
+-            onPressed: pasteKeyOnramp,
+-            icon: const Icon(Icons.content_paste),
+-            label: Text(appLocalizations.quickStartPasteKey),
+-          ),
++      final scheme = context.colorScheme;
++      return SizedBox(
++        height: MediaQuery.sizeOf(context).height * 0.67,
++        child: Column(
++          children: [
++            const Spacer(),
++            Container(
++              width: 198,
++              height: 198,
++              decoration: BoxDecoration(
++                shape: BoxShape.circle,
++                color: scheme.surface,
++                border: Border.all(color: scheme.outlineVariant),
++                boxShadow: [
++                  BoxShadow(
++                    color: scheme.shadow.withValues(alpha: 0.08),
++                    blurRadius: 32,
++                    offset: const Offset(0, 14),
++                  ),
++                ],
++              ),
++              child: Icon(
++                Icons.power_settings_new_rounded,
++                size: 72,
++                color: scheme.primary.withValues(alpha: 0.45),
++              ),
++            ),
++            const Spacer(),
++            Text(
++              appName,
++              style: context.textTheme.titleLarge?.copyWith(
++                fontWeight: FontWeight.w700,
++              ),
++            ),
++            const SizedBox(height: 12),
++            Text(
++              appLocalizations.quickStartPasteHint,
++              textAlign: TextAlign.center,
++              style: context.textTheme.bodyMedium?.copyWith(
++                color: scheme.onSurfaceVariant,
++              ),
++            ),
++            const SizedBox(height: 26),
++            Row(
++              children: [
++                Expanded(
++                  child: FilledButton.tonalIcon(
++                    onPressed: pasteKeyOnramp,
++                    icon: const Icon(Icons.content_paste_rounded),
++                    label: Text(appLocalizations.quickStartPasteKey),
++                  ),
++                ),
++                const SizedBox(width: 12),
++                Expanded(
++                  child: FilledButton.tonalIcon(
++                    onPressed: () => _scanQr(context),
++                    icon: const Icon(Icons.qr_code_scanner_rounded),
++                    label: Text(appLocalizations.qrcode),
++                  ),
++                ),
++              ],
++            ),
++          ],
+         ),
+       );
+     }
+@@ -70,7 +129,7 @@ class _ConnectButton extends ConsumerWidget {
+     final on = ref.watch(isStartProvider);
+     final connecting = ref.watch(coreStatusProvider) == CoreStatus.connecting;
+     final scheme = context.colorScheme;
+-    const size = 168.0;
++    const size = 198.0;
+     return GestureDetector(
+       onTap: () => _toggle(ref),
+       child: SizedBox(
+@@ -103,7 +162,7 @@ class _ConnectButton extends ConsumerWidget {
+               decoration: BoxDecoration(
+                 shape: BoxShape.circle,
+                 border: Border.all(
+-                  color: on ? scheme.success.opacity50 : scheme.outlineVariant,
++                  color: on ? scheme.primary : scheme.outlineVariant,
+                   width: 2,
+                 ),
+               ),
+@@ -113,9 +172,7 @@ class _ConnectButton extends ConsumerWidget {
+               height: size - 24,
+               decoration: BoxDecoration(
+                 shape: BoxShape.circle,
+-                color: on
+-                    ? scheme.primaryContainer
+-                    : scheme.surfaceContainerHigh,
++                color: on ? scheme.primaryContainer : scheme.surface,
+               ),
+               alignment: Alignment.center,
+               child: connecting
 diff --git a/lib/views/tools.dart b/lib/views/tools.dart
 index 681f721..d5d6cd1 100644
 --- a/lib/views/tools.dart
