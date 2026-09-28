@@ -55,7 +55,7 @@ index 2ea35f3..a3486a8 100644
              android:textSize="14sp"
              android:textStyle="bold" />
 diff --git a/lib/application.dart b/lib/application.dart
-index a3b5f90..d57730d 100644
+index a3b5f90..afc50fe 100644
 --- a/lib/application.dart
 +++ b/lib/application.dart
 @@ -36,7 +36,18 @@ class ApplicationState extends ConsumerState<Application> {
@@ -64,29 +64,42 @@ index a3b5f90..d57730d 100644
    }) {
 -    return ref.read(genColorSchemeProvider(brightness));
 +    final scheme = ColorScheme.fromSeed(
-+      seedColor: const Color(0xFF7C71FF),
++      seedColor: const Color(0xFF1678B8),
 +      brightness: brightness,
 +    );
 +    return scheme.copyWith(
 +      primary: brightness == Brightness.light
-+          ? const Color(0xFF7C71FF)
-+          : const Color(0xFFB9B2FF),
++          ? const Color(0xFF126FA8)
++          : const Color(0xFF69C9EF),
 +      surface: brightness == Brightness.light
-+          ? const Color(0xFFF5F5F7)
-+          : const Color(0xFF211F53),
++          ? const Color(0xFFF2F7FA)
++          : const Color(0xFF0C1925),
 +    );
    }
  
    @override
-@@ -133,6 +144,18 @@ class ApplicationState extends ConsumerState<Application> {
+@@ -133,6 +144,31 @@ class ApplicationState extends ConsumerState<Application> {
            themeMode: themeProps.themeMode,
            theme: ThemeData(
              useMaterial3: true,
 +            fontFamily: 'JetBrainsMono',
++            appBarTheme: const AppBarTheme(
++              elevation: 0,
++              scrolledUnderElevation: 0,
++              centerTitle: false,
++            ),
++            listTileTheme: const ListTileThemeData(
++              contentPadding: EdgeInsets.symmetric(horizontal: 16),
++              horizontalTitleGap: 14,
++              minVerticalPadding: 9,
++            ),
++            inputDecorationTheme: InputDecorationTheme(
++              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
++            ),
 +            filledButtonTheme: FilledButtonThemeData(
 +              style: FilledButton.styleFrom(
 +                shape: RoundedRectangleBorder(
-+                  borderRadius: BorderRadius.circular(16),
++                  borderRadius: BorderRadius.circular(12),
 +                ),
 +                padding: const EdgeInsets.symmetric(
 +                  horizontal: 20,
@@ -97,15 +110,28 @@ index a3b5f90..d57730d 100644
              pageTransitionsTheme: _pageTransitionsTheme,
              colorScheme: _getAppColorScheme(
                brightness: Brightness.light,
-@@ -141,6 +164,18 @@ class ApplicationState extends ConsumerState<Application> {
+@@ -141,6 +177,31 @@ class ApplicationState extends ConsumerState<Application> {
            ),
            darkTheme: ThemeData(
              useMaterial3: true,
 +            fontFamily: 'JetBrainsMono',
++            appBarTheme: const AppBarTheme(
++              elevation: 0,
++              scrolledUnderElevation: 0,
++              centerTitle: false,
++            ),
++            listTileTheme: const ListTileThemeData(
++              contentPadding: EdgeInsets.symmetric(horizontal: 16),
++              horizontalTitleGap: 14,
++              minVerticalPadding: 9,
++            ),
++            inputDecorationTheme: InputDecorationTheme(
++              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
++            ),
 +            filledButtonTheme: FilledButtonThemeData(
 +              style: FilledButton.styleFrom(
 +                shape: RoundedRectangleBorder(
-+                  borderRadius: BorderRadius.circular(16),
++                  borderRadius: BorderRadius.circular(12),
 +                ),
 +                padding: const EdgeInsets.symmetric(
 +                  horizontal: 20,
@@ -271,21 +297,100 @@ index b4233f0..841d18d 100644
 -  }
    return headers;
  }
+diff --git a/lib/models/config.dart b/lib/models/config.dart
+index 7393b7e..a090500 100644
+--- a/lib/models/config.dart
++++ b/lib/models/config.dart
+@@ -269,11 +269,11 @@ abstract class NetworkProps with _$NetworkProps {
+ @freezed
+ abstract class ProxiesStyleProps with _$ProxiesStyleProps {
+   const factory ProxiesStyleProps({
+-    @Default(ProxiesType.tab) ProxiesType type,
++    @Default(ProxiesType.list) ProxiesType type,
+     @Default(ProxiesSortType.none) ProxiesSortType sortType,
+-    @Default(ProxiesLayout.standard) ProxiesLayout layout,
++    @Default(ProxiesLayout.loose) ProxiesLayout layout,
+     @Default(ProxiesIconStyle.standard) ProxiesIconStyle iconStyle,
+-    @Default(ProxyCardType.expand) ProxyCardType cardType,
++    @Default(ProxyCardType.min) ProxyCardType cardType,
+   }) = _ProxiesStyleProps;
+ 
+   factory ProxiesStyleProps.fromJson(Map<String, Object?>? json) => json == null
+diff --git a/lib/models/generated/config.freezed.dart b/lib/models/generated/config.freezed.dart
+index 7e5eea7..a660b7c 100644
+--- a/lib/models/generated/config.freezed.dart
++++ b/lib/models/generated/config.freezed.dart
+@@ -1687,7 +1687,7 @@ return $default(_that.type,_that.sortType,_that.layout,_that.iconStyle,_that.car
+ @JsonSerializable()
+ 
+ class _ProxiesStyleProps implements ProxiesStyleProps {
+-  const _ProxiesStyleProps({this.type = ProxiesType.tab, this.sortType = ProxiesSortType.none, this.layout = ProxiesLayout.standard, this.iconStyle = ProxiesIconStyle.standard, this.cardType = ProxyCardType.expand});
++  const _ProxiesStyleProps({this.type = ProxiesType.list, this.sortType = ProxiesSortType.none, this.layout = ProxiesLayout.loose, this.iconStyle = ProxiesIconStyle.standard, this.cardType = ProxyCardType.min});
+   factory _ProxiesStyleProps.fromJson(Map<String, dynamic> json) => _$ProxiesStylePropsFromJson(json);
+ 
+ @override@JsonKey() final  ProxiesType type;
+diff --git a/lib/models/generated/config.g.dart b/lib/models/generated/config.g.dart
+index 70b2dbe..525ffcc 100644
+--- a/lib/models/generated/config.g.dart
++++ b/lib/models/generated/config.g.dart
+@@ -218,19 +218,19 @@ _ProxiesStyleProps _$ProxiesStylePropsFromJson(Map<String, dynamic> json) =>
+     _ProxiesStyleProps(
+       type:
+           $enumDecodeNullable(_$ProxiesTypeEnumMap, json['type']) ??
+-          ProxiesType.tab,
++          ProxiesType.list,
+       sortType:
+           $enumDecodeNullable(_$ProxiesSortTypeEnumMap, json['sortType']) ??
+           ProxiesSortType.none,
+       layout:
+           $enumDecodeNullable(_$ProxiesLayoutEnumMap, json['layout']) ??
+-          ProxiesLayout.standard,
++          ProxiesLayout.loose,
+       iconStyle:
+           $enumDecodeNullable(_$ProxiesIconStyleEnumMap, json['iconStyle']) ??
+           ProxiesIconStyle.standard,
+       cardType:
+           $enumDecodeNullable(_$ProxyCardTypeEnumMap, json['cardType']) ??
+-          ProxyCardType.expand,
++          ProxyCardType.min,
+     );
+ 
+ Map<String, dynamic> _$ProxiesStylePropsToJson(_ProxiesStyleProps instance) =>
 diff --git a/lib/pages/home.dart b/lib/pages/home.dart
-index 6443637..af9d651 100644
+index 6443637..8ef8008 100644
 --- a/lib/pages/home.dart
 +++ b/lib/pages/home.dart
-@@ -26,6 +26,9 @@ class HomePage extends StatelessWidget {
+@@ -20,29 +20,9 @@ class HomePage extends StatelessWidget {
+         color: context.colorScheme.surface,
+         child: Consumer(
+           builder: (context, ref, child) {
+-            final state = ref.watch(navigationStateProvider);
+             final systemUiOverlayStyle = ref.read(
+               systemUiOverlayStyleStateProvider,
              );
-             final navigationItems = state.navigationItems;
-             final currentIndex = state.currentIndex;
-+            final isDashboard = currentIndex >= 0 &&
-+                currentIndex < navigationItems.length &&
-+                navigationItems[currentIndex].label == PageLabel.dashboard;
-             final bottomNavigationBar = NavigationBarTheme(
-               data: _NavigationBarDefaultsM3(context),
-               child: NavigationBar(
-@@ -60,14 +63,15 @@ class HomePage extends StatelessWidget {
+-            final navigationItems = state.navigationItems;
+-            final currentIndex = state.currentIndex;
+-            final bottomNavigationBar = NavigationBarTheme(
+-              data: _NavigationBarDefaultsM3(context),
+-              child: NavigationBar(
+-                destinations: navigationItems
+-                    .map(
+-                      (e) => NavigationDestination(
+-                        icon: e.icon,
+-                        label: e.label.title,
+-                      ),
+-                    )
+-                    .toList(),
+-                onDestinationSelected: (index) {
+-                  appController.toPage(navigationItems[index].label);
+-                },
+-                selectedIndex: currentIndex,
+-              ),
+-            );
+             return AnnotatedRegion<SystemUiOverlayStyle>(
+               value: systemUiOverlayStyle.copyWith(
+                 systemNavigationBarColor: context.colorScheme.surfaceContainer,
+@@ -60,14 +40,6 @@ class HomePage extends StatelessWidget {
                        child: child!,
                      ),
                    ),
@@ -297,23 +402,39 @@ index 6443637..af9d651 100644
 -                    context: context,
 -                    child: bottomNavigationBar,
 -                  ),
-+                  if (!isDashboard)
-+                    MediaQuery.removePadding(
-+                      removeTop: true,
-+                      removeBottom: false,
-+                      removeLeft: true,
-+                      removeRight: true,
-+                      context: context,
-+                      child: bottomNavigationBar,
-+                    ),
                  ],
                ),
              );
+@@ -81,9 +53,12 @@ class HomePage extends StatelessWidget {
+                 navigationItems: navigationItems,
+                 pageBuilder: (_, index) {
+                   final navigationItem = navigationItems[index];
+-                  return KeepScope(
+-                    keep: navigationItem.keep,
+-                    child: navigationItem.builder(context),
++                  return CommonScaffoldBackActionProvider(
++                    backAction: () => appController.toPage(PageLabel.dashboard),
++                    child: KeepScope(
++                      keep: navigationItem.keep,
++                      child: navigationItem.builder(context),
++                    ),
+                   );
+                 },
+               );
+@@ -259,6 +234,8 @@ class HomeBackScopeContainer extends ConsumerWidget {
+         final canPop = Navigator.canPop(realContext);
+         if (canPop) {
+           Navigator.of(realContext).pop();
++        } else if (pageLabel != PageLabel.dashboard) {
++          appController.toPage(PageLabel.dashboard);
+         } else {
+           await appController.handleBackOrExit();
+         }
 diff --git a/lib/views/dashboard/dashboard.dart b/lib/views/dashboard/dashboard.dart
-index ae06014..c49367f 100644
+index ae06014..ef07167 100644
 --- a/lib/views/dashboard/dashboard.dart
 +++ b/lib/views/dashboard/dashboard.dart
-@@ -7,13 +7,13 @@ import 'package:fl_clash/controller.dart';
+@@ -7,13 +7,14 @@ import 'package:fl_clash/controller.dart';
  import 'package:fl_clash/enum/enum.dart';
  import 'package:fl_clash/providers/providers.dart';
  import 'package:fl_clash/state.dart';
@@ -325,10 +446,11 @@ index ae06014..c49367f 100644
  import 'widgets/widgets.dart' as dash;
  import 'widgets/hero.dart';
 -import 'widgets/quickstart_verify.dart';
++import 'happ_home.dart';
  
  GridItem _buildDashboardItem(DashboardWidget kind) => GridItem(
    key: ValueKey(kind),
-@@ -53,6 +53,17 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -53,6 +54,17 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
    final _addedWidgetsNotifier = ValueNotifier<List<GridItem>>([]);
    final _detailsOpenNotifier = ValueNotifier<bool>(false);
  
@@ -346,12 +468,13 @@ index ae06014..c49367f 100644
    @override
    void dispose() {
      _isEditNotifier.dispose();
-@@ -279,8 +290,24 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -279,14 +291,29 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
      });
      return _buildIsEdit(
        (isEdit) => CommonScaffold(
 -        title: appLocalizations.dashboard,
 -        actions: _buildActions(isEdit),
+-        body: Align(
 +        appBar: isEdit
 +            ? null
 +            : AppBar(
@@ -370,17 +493,274 @@ index ae06014..c49367f 100644
 +              ),
 +        title: isEdit ? appLocalizations.dashboard : null,
 +        actions: isEdit ? _buildActions(isEdit) : null,
-         body: Align(
++        body: !isEdit ? const HappHomeView() : Align(
            alignment: Alignment.topCenter,
            child: SingleChildScrollView(
-@@ -307,7 +334,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
-                 : Column(
-                     children: [
-                       const DashboardHero(),
+             padding: const EdgeInsets.all(16).copyWith(bottom: 88),
+-            child: isEdit
+-                ? SystemBackBlock(
++            child: SystemBackBlock(
+                     child: CommonPopScope(
+                       child: SuperGrid(
+                         key: key,
+@@ -303,22 +330,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+                         return false;
+                       },
+                     ),
+-                  )
+-                : Column(
+-                    children: [
+-                      const DashboardHero(),
 -                      const QuickStartVerifyOverlay(),
-                       const SizedBox(height: 10),
-                       DashboardDetailsSection(
-                         openNotifier: _detailsOpenNotifier,
+-                      const SizedBox(height: 10),
+-                      DashboardDetailsSection(
+-                        openNotifier: _detailsOpenNotifier,
+-                        grid: Grid(
+-                          crossAxisCount: columns,
+-                          crossAxisSpacing: spacing,
+-                          mainAxisSpacing: spacing,
+-                          children: children,
+-                        ),
+-                      ),
+-                    ],
+                   ),
+           ),
+         ),
+diff --git a/lib/views/dashboard/happ_home.dart b/lib/views/dashboard/happ_home.dart
+new file mode 100644
+index 0000000..968007a
+--- /dev/null
++++ b/lib/views/dashboard/happ_home.dart
+@@ -0,0 +1,229 @@
++import 'dart:async';
++
++import 'package:fl_clash/common/common.dart';
++import 'package:fl_clash/controller.dart';
++import 'package:fl_clash/enum/enum.dart';
++import 'package:fl_clash/models/models.dart';
++import 'package:fl_clash/pages/scan.dart';
++import 'package:fl_clash/providers/providers.dart';
++import 'package:fl_clash/views/profiles/add.dart';
++import 'package:fl_clash/widgets/subscription_info_view.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++
++/// The main Android layout follows the hierarchy of Happ's connection page:
++/// a centered power control, compact utility actions, subscription list and
++/// two import actions anchored at the bottom. All artwork is drawn in Flutter.
++class HappHomeView extends ConsumerWidget {
++  const HappHomeView({super.key});
++
++  Future<void> _scan(BuildContext context) async {
++    final value = await BaseNavigator.push(context, const ScanPage());
++    if (value != null) unawaited(appController.addProfileFromText(value));
++  }
++
++  void _toggle(WidgetRef ref) {
++    final next = !ref.read(isStartProvider);
++    debouncer.call(FunctionTag.updateStatus, () {
++      appController.updateStatus(next, isInit: !ref.read(initProvider));
++    }, duration: commonDuration);
++  }
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final scheme = Theme.of(context).colorScheme;
++    final profiles = ref.watch(profilesStateProvider);
++    final on = ref.watch(isStartProvider);
++    final connecting = ref.watch(coreStatusProvider) == CoreStatus.connecting;
++    return Column(
++      children: [
++        const SizedBox(height: 10),
++        Semantics(
++          button: true,
++          label: on ? appLocalizations.connected : appLocalizations.disconnected,
++          child: InkWell(
++            customBorder: const CircleBorder(),
++            onTap: () => _toggle(ref),
++            child: Container(
++              width: 210,
++              height: 210,
++              padding: const EdgeInsets.all(13),
++              decoration: BoxDecoration(
++                shape: BoxShape.circle,
++                border: Border.all(color: scheme.primary.withValues(alpha: .48), width: 2),
++                boxShadow: on
++                    ? [BoxShadow(color: scheme.primary.withValues(alpha: .28), blurRadius: 34)]
++                    : null,
++              ),
++              child: Container(
++                decoration: BoxDecoration(
++                  shape: BoxShape.circle,
++                  color: on ? scheme.primary : scheme.surfaceContainerHigh,
++                  border: Border.all(color: scheme.primary.withValues(alpha: .24)),
++                ),
++                child: connecting
++                    ? Center(child: CircularProgressIndicator(color: scheme.primary))
++                    : Icon(Icons.power_settings_new_rounded, size: 77,
++                        color: on ? scheme.onPrimary : scheme.primary),
++              ),
++            ),
++          ),
++        ),
++        const SizedBox(height: 8),
++        Text(
++          connecting
++              ? appLocalizations.connecting
++              : on ? appLocalizations.connected : appLocalizations.disconnected,
++          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
++        ),
++        if (on)
++          Text(utils.getTimeText(ref.watch(runTimeProvider)),
++              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
++        const SizedBox(height: 16),
++        Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 18),
++          child: Row(
++            children: [
++              Expanded(child: _UtilityAction(
++                icon: Icons.speed_outlined,
++                label: appLocalizations.proxies,
++                onTap: () => appController.toPage(PageLabel.proxies),
++              )),
++              const SizedBox(width: 8),
++              Expanded(child: _UtilityAction(
++                icon: Icons.tune_rounded,
++                label: appLocalizations.profiles,
++                onTap: () => appController.toPage(PageLabel.profiles),
++              )),
++            ],
++          ),
++        ),
++        const SizedBox(height: 14),
++        Expanded(
++          child: profiles.profiles.isEmpty
++              ? Center(
++                  child: Padding(
++                    padding: const EdgeInsets.all(24),
++                    child: Text(appLocalizations.nullProfileDesc,
++                        textAlign: TextAlign.center,
++                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
++                  ),
++                )
++              : ListView.separated(
++                  padding: const EdgeInsets.symmetric(horizontal: 14),
++                  itemCount: profiles.profiles.length,
++                  separatorBuilder: (_, _) => const SizedBox(height: 8),
++                  itemBuilder: (context, index) {
++                    final profile = profiles.profiles[index];
++                    return _SubscriptionRow(
++                      profile: profile,
++                      selected: profile.id == profiles.currentProfileId,
++                      onSelect: () {
++                        final wasRunning = ref.read(runTimeProvider) != null;
++                        ref.read(currentProfileIdProvider.notifier).value = profile.id;
++                        if (wasRunning) context.showSnackBar(appLocalizations.restartVpnToApply);
++                      },
++                    );
++                  },
++                ),
++        ),
++        Padding(
++          padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
++          child: Row(
++            children: [
++              Expanded(child: OutlinedButton.icon(
++                onPressed: pasteKeyOnramp,
++                icon: const Icon(Icons.content_paste_rounded, size: 19),
++                label: Text(appLocalizations.quickStartPasteKey, maxLines: 1, overflow: TextOverflow.ellipsis),
++              )),
++              const SizedBox(width: 9),
++              Expanded(child: OutlinedButton.icon(
++                onPressed: () => _scan(context),
++                icon: const Icon(Icons.qr_code_scanner_rounded, size: 19),
++                label: Text(appLocalizations.qrcode, maxLines: 1, overflow: TextOverflow.ellipsis),
++              )),
++            ],
++          ),
++        ),
++      ],
++    );
++  }
++}
++
++class _UtilityAction extends StatelessWidget {
++  const _UtilityAction({required this.icon, required this.label, required this.onTap});
++  final IconData icon;
++  final String label;
++  final VoidCallback onTap;
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Material(
++      color: scheme.surfaceContainerLow,
++      borderRadius: BorderRadius.circular(12),
++      child: InkWell(
++        borderRadius: BorderRadius.circular(12),
++        onTap: onTap,
++        child: Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
++          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
++            Icon(icon, size: 18, color: scheme.primary),
++            const SizedBox(width: 7),
++            Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
++          ]),
++        ),
++      ),
++    );
++  }
++}
++
++class _SubscriptionRow extends StatelessWidget {
++  const _SubscriptionRow({required this.profile, required this.selected, required this.onSelect});
++  final Profile profile;
++  final bool selected;
++  final VoidCallback onSelect;
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Material(
++      color: scheme.surfaceContainerLow,
++      borderRadius: BorderRadius.circular(14),
++      clipBehavior: Clip.antiAlias,
++      child: InkWell(
++        onTap: onSelect,
++        child: Column(children: [
++          Row(children: [
++            Container(width: 4, height: 64, color: selected ? scheme.primary : Colors.transparent),
++            const SizedBox(width: 12),
++            Icon(profile.type == ProfileType.url ? Icons.cloud_outlined : Icons.description_outlined,
++                size: 23, color: scheme.primary),
++            const SizedBox(width: 12),
++            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
++              Text(profile.realLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
++                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
++              const SizedBox(height: 3),
++              Text(profile.lastUpdateDate?.lastUpdateTimeDesc ?? '',
++                  maxLines: 1, overflow: TextOverflow.ellipsis,
++                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
++            ])),
++            if (selected) Icon(Icons.check_circle, size: 18, color: scheme.primary),
++            IconButton(
++              tooltip: appLocalizations.profiles,
++              onPressed: () => appController.toPage(PageLabel.profiles),
++              icon: const Icon(Icons.chevron_right_rounded),
++            ),
++          ]),
++          if (profile.subscriptionInfo != null)
++            Container(
++              width: double.infinity,
++              color: scheme.surfaceContainerHigh.withValues(alpha: .55),
++              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
++              child: SubscriptionInfoView(subscriptionInfo: profile.subscriptionInfo),
++            ),
++        ]),
++      ),
++    );
++  }
++}
 diff --git a/lib/views/dashboard/widgets/hero.dart b/lib/views/dashboard/widgets/hero.dart
 index 93be822..ce06f73 100644
 --- a/lib/views/dashboard/widgets/hero.dart
@@ -519,8 +899,93 @@ index 93be822..ce06f73 100644
                ),
                alignment: Alignment.center,
                child: connecting
+diff --git a/lib/views/profiles/add.dart b/lib/views/profiles/add.dart
+index f96f91a..111895d 100644
+--- a/lib/views/profiles/add.dart
++++ b/lib/views/profiles/add.dart
+@@ -81,27 +81,37 @@ class AddProfileView extends StatelessWidget {
+ 
+   @override
+   Widget build(context) {
+-    return ListView(
+-      children: [
+-        ListItem(
+-          leading: const Icon(Icons.qr_code_sharp),
+-          title: Text(appLocalizations.qrcode),
+-          subtitle: Text(appLocalizations.qrcodeDesc),
+-          onTap: _toScan,
+-        ),
+-        ListItem(
+-          leading: const Icon(Icons.upload_file_sharp),
+-          title: Text(appLocalizations.file),
+-          subtitle: Text(appLocalizations.fileDesc),
+-          onTap: _handleAddProfileFormFile,
+-        ),
+-        ListItem(
+-          leading: const Icon(Icons.cloud_download_sharp),
+-          title: Text(appLocalizations.url),
+-          subtitle: Text(appLocalizations.urlDesc),
+-          onTap: _toAdd,
+-        ),
+-      ],
++    final scheme = Theme.of(context).colorScheme;
++    return ListView.separated(
++      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
++      itemCount: 4,
++      separatorBuilder: (_, _) => Divider(height: 1, color: scheme.outlineVariant),
++      itemBuilder: (_, index) {
++        final icon = [
++          Icons.link_rounded,
++          Icons.content_paste_rounded,
++          Icons.qr_code_scanner_rounded,
++          Icons.upload_file_rounded,
++        ][index];
++        final title = [
++          appLocalizations.url,
++          appLocalizations.quickStartPasteKey,
++          appLocalizations.qrcode,
++          appLocalizations.file,
++        ][index];
++        final action = [
++          _toAdd,
++          pasteKeyOnramp,
++          _toScan,
++          _handleAddProfileFormFile,
++        ][index];
++        return ListTile(
++          leading: Icon(icon, color: scheme.primary),
++          title: Text(title),
++          trailing: const Icon(Icons.chevron_right_rounded),
++          onTap: action,
++        );
++      },
+     );
+   }
+ }
+diff --git a/lib/views/profiles/profiles.dart b/lib/views/profiles/profiles.dart
+index 4d9f6f9..cb2f97c 100644
+--- a/lib/views/profiles/profiles.dart
++++ b/lib/views/profiles/profiles.dart
+@@ -298,8 +298,15 @@ class ProfileItem extends StatelessWidget {
+       },
+       child: ListItem(
+         key: Key(profile.id.toString()),
+-        horizontalTitleGap: 16,
+-        padding: const EdgeInsets.symmetric(horizontal: 16),
++        leading: Icon(
++          profile.type == ProfileType.url
++              ? Icons.cloud_outlined
++              : Icons.description_outlined,
++          size: 24,
++          color: context.colorScheme.primary,
++        ),
++        horizontalTitleGap: 12,
++        padding: const EdgeInsets.symmetric(horizontal: 12),
+         trailing: SizedBox(
+           height: 40,
+           width: 40,
 diff --git a/lib/views/tools.dart b/lib/views/tools.dart
-index 681f721..d5d6cd1 100644
+index 681f721..148ba60 100644
 --- a/lib/views/tools.dart
 +++ b/lib/views/tools.dart
 @@ -13,8 +13,6 @@ import 'package:fl_clash/views/config/network.dart';
@@ -542,7 +1007,56 @@ index 681f721..d5d6cd1 100644
          _RoutingRulesItem(),
          _ScriptsItem(),
        ],
-@@ -260,20 +256,6 @@ class _CoreItem extends StatelessWidget {
+@@ -133,7 +129,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
+       ),
+     ];
+     return CommonScaffold(
+-      title: context.appLocalizations.tools,
++      title: context.appLocalizations.settings,
+       body: ListView.builder(
+         key: toolsStoreKey,
+         itemCount: items.length,
+@@ -160,7 +156,6 @@ class _LocaleItem extends ConsumerWidget {
+     final subTitle = locale ?? context.appLocalizations.defaultText;
+     final currentLocale = utils.getLocaleForString(locale);
+     return ListItem<Locale?>.options(
+-      leading: const Icon(Icons.language_outlined),
+       title: Text(context.appLocalizations.language),
+       subtitle: Text(localeDisplayName(subTitle)),
+       delegate: OptionsDelegate(
+@@ -184,7 +179,6 @@ class _ThemeItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.style),
+       title: Text(context.appLocalizations.theme),
+       subtitle: Text(context.appLocalizations.themeDesc),
+       delegate: const OpenDelegate(widget: ThemeView()),
+@@ -198,7 +192,6 @@ class _BackupItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.cloud_sync),
+       title: Text(context.appLocalizations.backupAndRestore),
+       subtitle: Text(context.appLocalizations.backupAndRestoreDesc),
+       delegate: const OpenDelegate(widget: BackupAndRestore()),
+@@ -213,7 +206,6 @@ class _VpnSettingsItem extends StatelessWidget {
+   Widget build(BuildContext context) {
+     final vpnSettingsTitle = appLocalizations.vpnSettings;
+     return ListItem.open(
+-      leading: const Icon(Icons.vpn_key),
+       title: Text(vpnSettingsTitle),
+       subtitle: Text(context.appLocalizations.networkDesc),
+       delegate: OpenDelegate(
+@@ -252,7 +244,6 @@ class _CoreItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.tune),
+       title: Text(context.appLocalizations.core),
+       subtitle: Text(appLocalizations.coreDesc),
+       delegate: const OpenDelegate(widget: ConfigView()),
+@@ -260,27 +251,12 @@ class _CoreItem extends StatelessWidget {
    }
  }
  
@@ -563,7 +1077,30 @@ index 681f721..d5d6cd1 100644
  class _DnsItem extends StatelessWidget {
    const _DnsItem();
  
-@@ -338,26 +320,12 @@ class _ScriptsItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.dns),
+       title: const Text('DNS'),
+       subtitle: Text(context.appLocalizations.dnsDesc),
+       delegate: OpenDelegate(
+@@ -315,7 +291,6 @@ class _RoutingRulesItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.library_books),
+       title: Text(appLocalizations.routingRules),
+       subtitle: Text(context.appLocalizations.controlGlobalAddedRules),
+       delegate: const OpenDelegate(widget: AddedRulesView()),
+@@ -330,7 +305,6 @@ class _ScriptsItem extends StatelessWidget {
+   Widget build(BuildContext context) {
+     final appLocalizations = context.appLocalizations;
+     return ListItem.open(
+-      leading: const Icon(Icons.rocket, fontWeight: FontWeight.w900),
+       title: Text(appLocalizations.script),
+       subtitle: Text(appLocalizations.overrideScript),
+       delegate: const OpenDelegate(widget: ScriptsView()),
+@@ -338,26 +312,12 @@ class _ScriptsItem extends StatelessWidget {
    }
  }
  
@@ -591,6 +1128,121 @@ index 681f721..d5d6cd1 100644
      // 1 = added, 2 = already there; below zero is our own "no system prompt
      // here", which leaves the QS editor as the only route.
      globalState.showNotifier(switch (code) {
+@@ -370,7 +330,6 @@ class _QuickTileItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem(
+-      leading: const Icon(Icons.add_to_home_screen),
+       title: Text(context.appLocalizations.quickTileTitle),
+       subtitle: Text(context.appLocalizations.quickTileDesc),
+       onTap: () => _request(context),
+@@ -387,7 +346,6 @@ class _QuickTileCollapsePanelItem extends ConsumerWidget {
+       appSettingProvider.select((state) => state.quickTileCollapsePanel),
+     );
+     return ListItem.switchItem(
+-      leading: const Icon(Icons.unfold_less_outlined),
+       title: Text(context.appLocalizations.quickTileCollapsePanel),
+       subtitle: Text(context.appLocalizations.quickTileCollapsePanelDesc),
+       delegate: SwitchDelegate(
+@@ -408,7 +366,6 @@ class _ResourceUsageItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.battery_charging_full_outlined),
+       title: Text(context.appLocalizations.resourceUsageTitle),
+       subtitle: Text(context.appLocalizations.resourceUsageDesc),
+       delegate: const OpenDelegate(widget: ResourceUsageView()),
+@@ -422,7 +379,6 @@ class _LoggingItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.article_outlined),
+       title: Text(context.appLocalizations.loggingTitle),
+       subtitle: Text(context.appLocalizations.loggingDesc),
+       delegate: const OpenDelegate(widget: LoggingView()),
+@@ -436,7 +392,6 @@ class _SettingItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.settings),
+       title: Text(appLocalizations.generalSettings),
+       subtitle: Text(context.appLocalizations.applicationDesc),
+       delegate: const OpenDelegate(widget: ApplicationSettingView()),
+@@ -450,7 +405,6 @@ class _NetworkRulesItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.rule),
+       title: Text(context.appLocalizations.networkRulesTitle),
+       delegate: const OpenDelegate(widget: NetworkRulesView()),
+     );
+@@ -463,7 +417,6 @@ class _PrivacyItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.shield),
+       title: Text(appLocalizations.privacyAndSecurity),
+       delegate: const OpenDelegate(widget: PrivacyView()),
+     );
+@@ -476,7 +429,6 @@ class _InfoItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.info),
+       title: Text(context.appLocalizations.about),
+       delegate: const OpenDelegate(widget: AboutView()),
+     );
+@@ -489,7 +441,6 @@ class _DeveloperItem extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return ListItem.open(
+-      leading: const Icon(Icons.developer_board),
+       title: Text(context.appLocalizations.developerMode),
+       delegate: const OpenDelegate(widget: DeveloperView()),
+     );
+diff --git a/lib/widgets/list.dart b/lib/widgets/list.dart
+index b20537f..897890c 100644
+--- a/lib/widgets/list.dart
++++ b/lib/widgets/list.dart
+@@ -273,7 +273,10 @@ class ListItem<T> extends StatelessWidget {
+       subtitle: subtitle,
+       titleAlignment: tileTitleAlignment,
+       onTap: onTap,
+-      trailing: trailing ?? this.trailing,
++      trailing: trailing ?? this.trailing ??
++          ((delegate is OpenDelegate || delegate is NextDelegate)
++              ? const Icon(Icons.chevron_right_rounded, size: 22)
++              : null),
+       contentPadding: padding,
+     );
+   }
+@@ -409,8 +412,8 @@ class ListItem<T> extends StatelessWidget {
+ const _sectionHeaderPadding = EdgeInsets.only(
+   left: 16,
+   right: 8,
+-  top: 24,
+-  bottom: 8,
++  top: 18,
++  bottom: 7,
+ );
+ 
+ class ListHeader extends StatelessWidget {
+@@ -443,11 +446,11 @@ class ListHeader extends StatelessWidget {
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text(
+-                  title.toUpperCase(),
++                  title,
+                   style: context.textTheme.labelMedium?.copyWith(
+-                    color: context.colorScheme.onSurfaceVariant,
+-                    fontWeight: FontWeight.w800,
+-                    letterSpacing: 0.5,
++                    color: context.colorScheme.primary,
++                    fontWeight: FontWeight.w700,
++                    letterSpacing: 0,
+                   ),
+                 ),
+                 if (subTitle != null)
 diff --git a/test/common/happ_test.dart b/test/common/happ_test.dart
 index 23c115c..9e7188d 100644
 --- a/test/common/happ_test.dart
