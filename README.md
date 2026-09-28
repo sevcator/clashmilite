@@ -28,6 +28,6 @@ The app patch names the app Clash Mi Lite, removes the automatic Geo update path
 
 GitHub Actions `Build Android APK` produces split APKs for arm64, armv7, and x86_64 in its `clash-mi-lite-android-apks` artifact. These are installable preview builds signed with the standard Android debug key and use the package ID `org.sevcator.clashmilite.dev`; they are not production signed. To build locally, install Flutter 3.35.7, Go 1.27, Java 17 and Android SDK with NDK 28.0.13004108, then run `bash core/build-android-app.sh` on Linux. APKs appear in `dist/`.
 
-The [Android preview release](https://github.com/sevcator/clashmilite/releases/tag/v0.1.0-android-preview) contains direct APK downloads. Most phones use the `arm64-v8a` file. Uninstall an earlier preview before installing a new one because each CI run has a different debug signing key; export any profiles first.
+The [latest Android preview release](https://github.com/sevcator/clashmilite/releases/tag/v0.1.1-android-preview) contains direct APK downloads. Most phones use the `arm64-v8a` file. Uninstall an earlier preview before installing a new one because each CI run has a different debug signing key; export any profiles first.
 
 No installable Windows, Linux, macOS or iOS app package is currently built. The core executables for those platforms are command line tools only.
