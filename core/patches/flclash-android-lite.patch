@@ -553,10 +553,10 @@ index ae06014..2f37598 100644
          ),
 diff --git a/lib/views/dashboard/happ_home.dart b/lib/views/dashboard/happ_home.dart
 new file mode 100644
-index 0000000..e125895
+index 0000000..251688d
 --- /dev/null
 +++ b/lib/views/dashboard/happ_home.dart
-@@ -0,0 +1,232 @@
+@@ -0,0 +1,276 @@
 +import 'dart:async';
 +
 +import 'package:fl_clash/common/common.dart';
@@ -591,6 +591,9 @@ index 0000000..e125895
 +  @override
 +  Widget build(BuildContext context, WidgetRef ref) {
 +    final scheme = Theme.of(context).colorScheme;
++    final powerSize = (MediaQuery.sizeOf(context).height * .28)
++        .clamp(140.0, 210.0)
++        .toDouble();
 +    final profiles = ref.watch(profilesStateProvider);
 +    final on = ref.watch(isStartProvider);
 +    final connecting = ref.watch(coreStatusProvider) == CoreStatus.connecting;
@@ -603,28 +606,49 @@ index 0000000..e125895
 +          child: InkWell(
 +            customBorder: const CircleBorder(),
 +            onTap: profiles.profiles.isEmpty ? null : () => _toggle(ref),
-+            child: Container(
-+              width: 210,
-+              height: 210,
-+              padding: const EdgeInsets.all(13),
-+              decoration: BoxDecoration(
-+                shape: BoxShape.circle,
-+                border: Border.all(color: scheme.primary.withValues(alpha: .48), width: 2),
-+                boxShadow: on
-+                    ? [BoxShadow(color: scheme.primary.withValues(alpha: .28), blurRadius: 34)]
-+                    : null,
-+              ),
-+              child: Container(
-+                decoration: BoxDecoration(
-+                  shape: BoxShape.circle,
-+                  color: on ? scheme.primary : scheme.surfaceContainerHigh,
-+                  border: Border.all(color: scheme.primary.withValues(alpha: .24)),
-+                ),
-+                child: connecting
-+                    ? Center(child: CircularProgressIndicator(color: scheme.primary))
-+                    : Icon(Icons.power_settings_new_rounded, size: 77,
-+                        color: on ? scheme.onPrimary : scheme.primary.withValues(
-+                            alpha: profiles.profiles.isEmpty ? .45 : 1)),
++            child: SizedBox(
++              width: powerSize,
++              height: powerSize,
++              child: Stack(
++                alignment: Alignment.center,
++                children: [
++                  CustomPaint(
++                    size: Size(powerSize, powerSize),
++                    painter: _PowerRingPainter(
++                      start: scheme.primary,
++                      end: const Color(0xFF2BB9C4),
++                    ),
++                  ),
++                  Container(
++                    width: powerSize * .843,
++                    height: powerSize * .843,
++                    decoration: BoxDecoration(
++                      shape: BoxShape.circle,
++                      gradient: RadialGradient(
++                        colors: [
++                          on ? scheme.primary : scheme.primaryContainer,
++                          on ? scheme.primary.withValues(alpha: .78) : scheme.primary.withValues(alpha: .72),
++                        ],
++                      ),
++                      boxShadow: on
++                          ? [BoxShadow(color: scheme.primary.withValues(alpha: .26), blurRadius: 30)]
++                          : null,
++                    ),
++                  ),
++                  Container(
++                    width: powerSize * .638,
++                    height: powerSize * .638,
++                    decoration: BoxDecoration(
++                      shape: BoxShape.circle,
++                      color: on ? scheme.primaryContainer : scheme.surfaceContainerHigh,
++                    ),
++                  ),
++                  connecting
++                      ? CircularProgressIndicator(color: scheme.primary)
++                      : Icon(Icons.power_settings_new_rounded, size: powerSize * .305,
++                          color: on ? scheme.onPrimaryContainer : scheme.primary.withValues(
++                              alpha: profiles.profiles.isEmpty ? .45 : 1)),
++                ],
 +              ),
 +            ),
 +          ),
@@ -710,6 +734,26 @@ index 0000000..e125895
 +      ],
 +    );
 +  }
++}
++
++class _PowerRingPainter extends CustomPainter {
++  const _PowerRingPainter({required this.start, required this.end});
++  final Color start;
++  final Color end;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    final rect = Offset.zero & size;
++    final paint = Paint()
++      ..shader = SweepGradient(colors: [start, end, start]).createShader(rect)
++      ..style = PaintingStyle.stroke
++      ..strokeWidth = 2;
++    canvas.drawCircle(rect.center, size.shortestSide / 2 - 2, paint);
++  }
++
++  @override
++  bool shouldRepaint(covariant _PowerRingPainter oldDelegate) =>
++      start != oldDelegate.start || end != oldDelegate.end;
 +}
 +
 +class _UtilityAction extends StatelessWidget {
@@ -1488,6 +1532,19 @@ index b20537f..897890c 100644
                    ),
                  ),
                  if (subTitle != null)
+diff --git a/pubspec.yaml b/pubspec.yaml
+index e67fa55..5aefcb7 100755
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -1,7 +1,7 @@
+ name: fl_clash
+ description: Android mihomo client. Open source, no ads, no telemetry.
+ publish_to: 'none'
+-version: 0.17.0-rc6+2026092703
++version: 0.2.0+2026092801
+ environment:
+   sdk: '>=3.8.0 <4.0.0'
+ 
 diff --git a/test/common/happ_test.dart b/test/common/happ_test.dart
 index 23c115c..9e7188d 100644
 --- a/test/common/happ_test.dart

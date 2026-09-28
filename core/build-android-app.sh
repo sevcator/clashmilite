@@ -32,6 +32,8 @@ for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
   cp "$repo_root/android/app/src/main/res/mipmap-$density/ic_launcher.png" \
     "$work_root/app/android/app/src/main/res/mipmap-$density/ic_launcher_lite.png"
 done
+cp "$repo_root/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" \
+  "$work_root/app/assets/images/icon.png"
 
 go -C "$work_root/wrapper/src/main/jni/core" mod edit \
   -replace "github.com/metacubex/mihomo=$work_root/mihomo"
