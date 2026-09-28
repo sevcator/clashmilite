@@ -431,7 +431,7 @@ index 6443637..8ef8008 100644
            await appController.handleBackOrExit();
          }
 diff --git a/lib/views/dashboard/dashboard.dart b/lib/views/dashboard/dashboard.dart
-index ae06014..2f37598 100644
+index ae06014..0460136 100644
 --- a/lib/views/dashboard/dashboard.dart
 +++ b/lib/views/dashboard/dashboard.dart
 @@ -7,13 +7,14 @@ import 'package:fl_clash/controller.dart';
@@ -450,7 +450,7 @@ index ae06014..2f37598 100644
  
  GridItem _buildDashboardItem(DashboardWidget kind) => GridItem(
    key: ValueKey(kind),
-@@ -53,6 +54,34 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -53,6 +54,37 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
    final _addedWidgetsNotifier = ValueNotifier<List<GridItem>>([]);
    final _detailsOpenNotifier = ValueNotifier<bool>(false);
  
@@ -467,6 +467,9 @@ index ae06014..2f37598 100644
 +        break;
 +      case 3:
 +        unawaited(appController.addProfileFormFile());
++        break;
++      case 4:
++        unawaited(inputProfileText());
 +        break;
 +    }
 +  }
@@ -485,7 +488,7 @@ index ae06014..2f37598 100644
    @override
    void dispose() {
      _isEditNotifier.dispose();
-@@ -279,14 +308,37 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -279,14 +311,44 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
      });
      return _buildIsEdit(
        (isEdit) => CommonScaffold(
@@ -511,6 +514,13 @@ index ae06014..2f37598 100644
 +                      _importMenuItem(1, Icons.content_paste_rounded, appLocalizations.paste),
 +                      _importMenuItem(2, Icons.qr_code_scanner_rounded, appLocalizations.qrcode),
 +                      _importMenuItem(3, Icons.upload_file_rounded, appLocalizations.file),
++                      _importMenuItem(
++                        4,
++                        Icons.edit_note_rounded,
++                        Localizations.localeOf(context).languageCode == 'ru'
++                            ? 'Ввести вручную'
++                            : 'Manual input',
++                      ),
 +                    ],
 +                    icon: const Icon(Icons.add_rounded),
 +                  ),
@@ -528,7 +538,7 @@ index ae06014..2f37598 100644
                      child: CommonPopScope(
                        child: SuperGrid(
                          key: key,
-@@ -303,22 +355,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -303,22 +365,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
                          return false;
                        },
                      ),
@@ -553,10 +563,10 @@ index ae06014..2f37598 100644
          ),
 diff --git a/lib/views/dashboard/happ_home.dart b/lib/views/dashboard/happ_home.dart
 new file mode 100644
-index 0000000..251688d
+index 0000000..5dbfbd3
 --- /dev/null
 +++ b/lib/views/dashboard/happ_home.dart
-@@ -0,0 +1,276 @@
+@@ -0,0 +1,278 @@
 +import 'dart:async';
 +
 +import 'package:fl_clash/common/common.dart';
@@ -592,14 +602,14 @@ index 0000000..251688d
 +  Widget build(BuildContext context, WidgetRef ref) {
 +    final scheme = Theme.of(context).colorScheme;
 +    final powerSize = (MediaQuery.sizeOf(context).height * .28)
-+        .clamp(140.0, 210.0)
++        .clamp(140.0, 217.0)
 +        .toDouble();
 +    final profiles = ref.watch(profilesStateProvider);
 +    final on = ref.watch(isStartProvider);
 +    final connecting = ref.watch(coreStatusProvider) == CoreStatus.connecting;
 +    return Column(
 +      children: [
-+        const SizedBox(height: 10),
++        const SizedBox(height: 12),
 +        Semantics(
 +          button: true,
 +          label: on ? appLocalizations.connected : appLocalizations.disconnected,
@@ -620,8 +630,8 @@ index 0000000..251688d
 +                    ),
 +                  ),
 +                  Container(
-+                    width: powerSize * .843,
-+                    height: powerSize * .843,
++                    width: powerSize * .816,
++                    height: powerSize * .816,
 +                    decoration: BoxDecoration(
 +                      shape: BoxShape.circle,
 +                      gradient: RadialGradient(
@@ -636,8 +646,8 @@ index 0000000..251688d
 +                    ),
 +                  ),
 +                  Container(
-+                    width: powerSize * .638,
-+                    height: powerSize * .638,
++                    width: powerSize * .622,
++                    height: powerSize * .622,
 +                    decoration: BoxDecoration(
 +                      shape: BoxShape.circle,
 +                      color: on ? scheme.primaryContainer : scheme.surfaceContainerHigh,
@@ -645,7 +655,7 @@ index 0000000..251688d
 +                  ),
 +                  connecting
 +                      ? CircularProgressIndicator(color: scheme.primary)
-+                      : Icon(Icons.power_settings_new_rounded, size: powerSize * .305,
++                      : Icon(Icons.power_settings_new_rounded, size: powerSize * .24,
 +                          color: on ? scheme.onPrimaryContainer : scheme.primary.withValues(
 +                              alpha: profiles.profiles.isEmpty ? .45 : 1)),
 +                ],
@@ -653,13 +663,15 @@ index 0000000..251688d
 +            ),
 +          ),
 +        ),
-+        const SizedBox(height: 8),
-+        Text(
-+          connecting
-+              ? appLocalizations.connecting
-+              : on ? appLocalizations.connected : appLocalizations.disconnected,
-+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-+        ),
++        if (profiles.profiles.isNotEmpty) ...[
++          const SizedBox(height: 8),
++          Text(
++            connecting
++                ? appLocalizations.connecting
++                : on ? appLocalizations.connected : appLocalizations.disconnected,
++            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
++          ),
++        ],
 +        if (on)
 +          Text(utils.getTimeText(ref.watch(runTimeProvider)),
 +              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
@@ -972,10 +984,10 @@ index 93be822..ce06f73 100644
                alignment: Alignment.center,
                child: connecting
 diff --git a/lib/views/profiles/add.dart b/lib/views/profiles/add.dart
-index f96f91a..4f838ed 100644
+index f96f91a..ae8fc24 100644
 --- a/lib/views/profiles/add.dart
 +++ b/lib/views/profiles/add.dart
-@@ -33,6 +33,29 @@ Future<void> pasteKeyOnramp() async {
+@@ -33,6 +33,44 @@ Future<void> pasteKeyOnramp() async {
    }
  }
  
@@ -1002,10 +1014,25 @@ index f96f91a..4f838ed 100644
 +  if (value != null) unawaited(appController.addProfileFromText(value));
 +}
 +
++Future<void> inputProfileText() async {
++  final value = await globalState.showCommonDialog<String>(
++    child: InputDialog(
++      title: appLocalizations.addProfile,
++      value: '',
++      labelText: appLocalizations.quickStartPasteHint,
++      autovalidateMode: AutovalidateMode.onUnfocus,
++      validator: (value) => value == null || value.isEmpty
++          ? appLocalizations.emptyTip('').trim()
++          : null,
++    ),
++  );
++  if (value != null) unawaited(appController.addProfileFromText(value));
++}
++
  class AddProfileView extends StatelessWidget {
    final BuildContext context;
  
-@@ -42,66 +65,47 @@ class AddProfileView extends StatelessWidget {
+@@ -42,66 +80,52 @@ class AddProfileView extends StatelessWidget {
      unawaited(appController.addProfileFormFile());
    }
  
@@ -1074,7 +1101,7 @@ index f96f91a..4f838ed 100644
 +    final scheme = Theme.of(context).colorScheme;
 +    return ListView.separated(
 +      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-+      itemCount: 4,
++      itemCount: 5,
 +      separatorBuilder: (_, _) => Divider(height: 1, color: scheme.outlineVariant),
 +      itemBuilder: (_, index) {
 +        final icon = [
@@ -1082,18 +1109,23 @@ index f96f91a..4f838ed 100644
 +          Icons.content_paste_rounded,
 +          Icons.qr_code_scanner_rounded,
 +          Icons.upload_file_rounded,
++          Icons.edit_note_rounded,
 +        ][index];
 +        final title = [
 +          appLocalizations.url,
 +          appLocalizations.quickStartPasteKey,
 +          appLocalizations.qrcode,
 +          appLocalizations.file,
++          Localizations.localeOf(context).languageCode == 'ru'
++              ? 'Ввести вручную'
++              : 'Manual input',
 +        ][index];
 +        final action = [
 +          _toAdd,
 +          pasteKeyOnramp,
 +          _toScan,
 +          _handleAddProfileFormFile,
++          inputProfileText,
 +        ][index];
 +        return ListTile(
 +          leading: Icon(icon, color: scheme.primary),
@@ -1266,7 +1298,7 @@ index 12f5302..d9d058e 100644
              ),
            ],
 diff --git a/lib/views/tools.dart b/lib/views/tools.dart
-index 681f721..39528a2 100644
+index 681f721..93cbb79 100644
 --- a/lib/views/tools.dart
 +++ b/lib/views/tools.dart
 @@ -13,8 +13,6 @@ import 'package:fl_clash/views/config/network.dart';
@@ -1278,8 +1310,27 @@ index 681f721..39528a2 100644
  import 'package:fl_clash/views/setting/logging.dart';
  import 'package:fl_clash/views/setting/resource_usage.dart';
  import 'package:fl_clash/views/setting/network_rules.dart';
-@@ -76,9 +74,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
-       title: appLocalizations.engine,
+@@ -60,25 +58,23 @@ class _ToolViewState extends ConsumerState<ToolsView> {
+   List<Widget> _appearanceSection() {
+     return generateSection(
+       title: appLocalizations.appearance,
+-      items: const [_ThemeItem(), _LocaleItem()],
++      items: const [_LocaleItem(), _ThemeItem(), _SettingItem()],
+     );
+   }
+ 
+   List<Widget> _connectionSection() {
+     return generateSection(
+       title: context.appLocalizations.connection,
+-      items: [const _VpnSettingsItem(), const _NetworkRulesItem()],
++      items: [const _NetworkRulesItem(), const _VpnSettingsItem()],
+     );
+   }
+ 
+   List<Widget> _engineSection() {
+     return generateSection(
+-      title: appLocalizations.engine,
++      title: appLocalizations.advanced,
        items: const [
          _CoreItem(),
 -        _LibraryItem(),
@@ -1288,7 +1339,18 @@ index 681f721..39528a2 100644
          _RoutingRulesItem(),
          _ScriptsItem(),
        ],
-@@ -116,6 +112,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
+@@ -87,9 +83,8 @@ class _ToolViewState extends ConsumerState<ToolsView> {
+ 
+   List<Widget> _applicationSection() {
+     return generateSection(
+-      title: context.appLocalizations.application,
++      title: appLocalizations.more,
+       items: const [
+-        _SettingItem(),
+         _LoggingItem(),
+         _ResourceUsageItem(),
+         _QuickTileItem(),
+@@ -116,6 +111,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
        const Divider(height: 0),
        if (vm2.b) const _DeveloperItem(),
        if (vm2.b) const Divider(height: 0),
@@ -1296,7 +1358,7 @@ index 681f721..39528a2 100644
        const _InfoItem(),
        Consumer(
          builder: (_, ref, _) {
-@@ -133,7 +130,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
+@@ -133,7 +129,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
        ),
      ];
      return CommonScaffold(
@@ -1305,7 +1367,7 @@ index 681f721..39528a2 100644
        body: ListView.builder(
          key: toolsStoreKey,
          itemCount: items.length,
-@@ -160,7 +157,6 @@ class _LocaleItem extends ConsumerWidget {
+@@ -160,7 +156,6 @@ class _LocaleItem extends ConsumerWidget {
      final subTitle = locale ?? context.appLocalizations.defaultText;
      final currentLocale = utils.getLocaleForString(locale);
      return ListItem<Locale?>.options(
@@ -1313,7 +1375,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.language),
        subtitle: Text(localeDisplayName(subTitle)),
        delegate: OptionsDelegate(
-@@ -184,7 +180,6 @@ class _ThemeItem extends StatelessWidget {
+@@ -184,7 +179,6 @@ class _ThemeItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1321,7 +1383,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.theme),
        subtitle: Text(context.appLocalizations.themeDesc),
        delegate: const OpenDelegate(widget: ThemeView()),
-@@ -198,7 +193,6 @@ class _BackupItem extends StatelessWidget {
+@@ -198,7 +192,6 @@ class _BackupItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1329,7 +1391,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.backupAndRestore),
        subtitle: Text(context.appLocalizations.backupAndRestoreDesc),
        delegate: const OpenDelegate(widget: BackupAndRestore()),
-@@ -213,7 +207,6 @@ class _VpnSettingsItem extends StatelessWidget {
+@@ -213,7 +206,6 @@ class _VpnSettingsItem extends StatelessWidget {
    Widget build(BuildContext context) {
      final vpnSettingsTitle = appLocalizations.vpnSettings;
      return ListItem.open(
@@ -1337,7 +1399,7 @@ index 681f721..39528a2 100644
        title: Text(vpnSettingsTitle),
        subtitle: Text(context.appLocalizations.networkDesc),
        delegate: OpenDelegate(
-@@ -252,7 +245,6 @@ class _CoreItem extends StatelessWidget {
+@@ -252,7 +244,6 @@ class _CoreItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1345,7 +1407,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.core),
        subtitle: Text(appLocalizations.coreDesc),
        delegate: const OpenDelegate(widget: ConfigView()),
-@@ -260,27 +252,12 @@ class _CoreItem extends StatelessWidget {
+@@ -260,27 +251,12 @@ class _CoreItem extends StatelessWidget {
    }
  }
  
@@ -1373,7 +1435,7 @@ index 681f721..39528a2 100644
        title: const Text('DNS'),
        subtitle: Text(context.appLocalizations.dnsDesc),
        delegate: OpenDelegate(
-@@ -315,7 +292,6 @@ class _RoutingRulesItem extends StatelessWidget {
+@@ -315,7 +291,6 @@ class _RoutingRulesItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1381,7 +1443,7 @@ index 681f721..39528a2 100644
        title: Text(appLocalizations.routingRules),
        subtitle: Text(context.appLocalizations.controlGlobalAddedRules),
        delegate: const OpenDelegate(widget: AddedRulesView()),
-@@ -330,7 +306,6 @@ class _ScriptsItem extends StatelessWidget {
+@@ -330,7 +305,6 @@ class _ScriptsItem extends StatelessWidget {
    Widget build(BuildContext context) {
      final appLocalizations = context.appLocalizations;
      return ListItem.open(
@@ -1389,7 +1451,7 @@ index 681f721..39528a2 100644
        title: Text(appLocalizations.script),
        subtitle: Text(appLocalizations.overrideScript),
        delegate: const OpenDelegate(widget: ScriptsView()),
-@@ -338,26 +313,12 @@ class _ScriptsItem extends StatelessWidget {
+@@ -338,26 +312,12 @@ class _ScriptsItem extends StatelessWidget {
    }
  }
  
@@ -1417,7 +1479,7 @@ index 681f721..39528a2 100644
      // 1 = added, 2 = already there; below zero is our own "no system prompt
      // here", which leaves the QS editor as the only route.
      globalState.showNotifier(switch (code) {
-@@ -370,7 +331,6 @@ class _QuickTileItem extends StatelessWidget {
+@@ -370,7 +330,6 @@ class _QuickTileItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem(
@@ -1425,7 +1487,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.quickTileTitle),
        subtitle: Text(context.appLocalizations.quickTileDesc),
        onTap: () => _request(context),
-@@ -387,7 +347,6 @@ class _QuickTileCollapsePanelItem extends ConsumerWidget {
+@@ -387,7 +346,6 @@ class _QuickTileCollapsePanelItem extends ConsumerWidget {
        appSettingProvider.select((state) => state.quickTileCollapsePanel),
      );
      return ListItem.switchItem(
@@ -1433,7 +1495,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.quickTileCollapsePanel),
        subtitle: Text(context.appLocalizations.quickTileCollapsePanelDesc),
        delegate: SwitchDelegate(
-@@ -408,7 +367,6 @@ class _ResourceUsageItem extends StatelessWidget {
+@@ -408,7 +366,6 @@ class _ResourceUsageItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1441,7 +1503,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.resourceUsageTitle),
        subtitle: Text(context.appLocalizations.resourceUsageDesc),
        delegate: const OpenDelegate(widget: ResourceUsageView()),
-@@ -422,7 +380,6 @@ class _LoggingItem extends StatelessWidget {
+@@ -422,7 +379,6 @@ class _LoggingItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1449,7 +1511,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.loggingTitle),
        subtitle: Text(context.appLocalizations.loggingDesc),
        delegate: const OpenDelegate(widget: LoggingView()),
-@@ -436,7 +393,6 @@ class _SettingItem extends StatelessWidget {
+@@ -436,7 +392,6 @@ class _SettingItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1457,7 +1519,7 @@ index 681f721..39528a2 100644
        title: Text(appLocalizations.generalSettings),
        subtitle: Text(context.appLocalizations.applicationDesc),
        delegate: const OpenDelegate(widget: ApplicationSettingView()),
-@@ -450,7 +406,6 @@ class _NetworkRulesItem extends StatelessWidget {
+@@ -450,7 +405,6 @@ class _NetworkRulesItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1465,7 +1527,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.networkRulesTitle),
        delegate: const OpenDelegate(widget: NetworkRulesView()),
      );
-@@ -463,7 +418,6 @@ class _PrivacyItem extends StatelessWidget {
+@@ -463,7 +417,6 @@ class _PrivacyItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1473,7 +1535,7 @@ index 681f721..39528a2 100644
        title: Text(appLocalizations.privacyAndSecurity),
        delegate: const OpenDelegate(widget: PrivacyView()),
      );
-@@ -476,7 +430,6 @@ class _InfoItem extends StatelessWidget {
+@@ -476,7 +429,6 @@ class _InfoItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
@@ -1481,7 +1543,7 @@ index 681f721..39528a2 100644
        title: Text(context.appLocalizations.about),
        delegate: const OpenDelegate(widget: AboutView()),
      );
-@@ -489,7 +442,6 @@ class _DeveloperItem extends StatelessWidget {
+@@ -489,7 +441,6 @@ class _DeveloperItem extends StatelessWidget {
    @override
    Widget build(BuildContext context) {
      return ListItem.open(
