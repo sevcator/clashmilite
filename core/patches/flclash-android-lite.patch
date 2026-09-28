@@ -41,6 +41,19 @@ index 276fbd8..9226dd7 100644
              }
  
              proguardFiles(
+diff --git a/android/app/src/main/res/layout/vpn_widget.xml b/android/app/src/main/res/layout/vpn_widget.xml
+index 2ea35f3..a3486a8 100644
+--- a/android/app/src/main/res/layout/vpn_widget.xml
++++ b/android/app/src/main/res/layout/vpn_widget.xml
+@@ -28,7 +28,7 @@
+             android:layout_height="wrap_content"
+             android:ellipsize="end"
+             android:maxLines="1"
+-            android:text="FlClash"
++            android:text="Clash Mi Lite"
+             android:textColor="#FFFFFF"
+             android:textSize="14sp"
+             android:textStyle="bold" />
 diff --git a/lib/application.dart b/lib/application.dart
 index a3b5f90..d57730d 100644
 --- a/lib/application.dart
@@ -193,6 +206,71 @@ index f1a4b57..1ff785e 100644
      }
      await onConfigApplied?.call();
      addCheckIp();
+diff --git a/lib/ingest/happ/happ_fetch.dart b/lib/ingest/happ/happ_fetch.dart
+index 4e67920..e9abd3d 100644
+--- a/lib/ingest/happ/happ_fetch.dart
++++ b/lib/ingest/happ/happ_fetch.dart
+@@ -6,9 +6,8 @@ import 'package:yaml/yaml.dart';
+ typedef HeaderDecorator =
+     Future<Map<String, String>> Function({Map<String, String>? base});
+ 
+-// Fetches honestly and as the Happ client and keeps the body with more proxies (some
+-// panels gate nodes behind the Happ identity); a tie keeps the honest one, so the device
+-// id is not leaked for nothing. If both fail, the honest error (HTTP status, body) surfaces.
++// Fetches with the normal and Happ user agents and keeps the body with more
++// proxies. Neither request adds a generated device identifier.
+ class HappFetchStrategy implements FetchStrategy {
+   HappFetchStrategy({required RawFetch rawFetch, HeaderDecorator? happIdentity})
+     : _rawFetch = rawFetch,
+diff --git a/lib/ingest/happ/happ_identity.dart b/lib/ingest/happ/happ_identity.dart
+index b4233f0..841d18d 100644
+--- a/lib/ingest/happ/happ_identity.dart
++++ b/lib/ingest/happ/happ_identity.dart
+@@ -1,41 +1,10 @@
+-import 'dart:math';
+-
+-import 'package:fl_clash/common/preferences.dart';
+-
+-// The Happ client identity a panel needs to serve its xray-JSON subscription:
+-// this UA (some panels gate the format on it) plus a stable device id header.
++// Some panels gate xray-JSON on a Happ user agent. Do not send a generated
++// hardware or installation identifier with subscription requests.
+ const happUserAgent = 'Happ/3.6.0';
+-const happHwidHeader = 'x-hwid';
+-
+-// RFC 4122 v4 UUID; the device id Happ invents per install. A panel counts
+-// it as one device slot.
+-String generateHwid() {
+-  final r = Random.secure();
+-  final b = List<int>.generate(16, (_) => r.nextInt(256));
+-  b[6] = (b[6] & 0x0f) | 0x40; // version 4
+-  b[8] = (b[8] & 0x3f) | 0x80; // variant 10xx
+-  final h = [
+-    for (var i = 0; i < 16; i++) b[i].toRadixString(16).padLeft(2, '0'),
+-  ].join();
+-  return '${h.substring(0, 8)}-${h.substring(8, 12)}-${h.substring(12, 16)}-'
+-      '${h.substring(16, 20)}-${h.substring(20)}';
+-}
+-
+-Future<String> ensureHwid() async {
+-  final existing = await preferences.getHwid();
+-  if (existing != null && existing.isNotEmpty) return existing;
+-  final id = generateHwid();
+-  await preferences.setHwid(id);
+-  return id;
+-}
+ 
+-// Makes FlClash look like Happ to a panel (Happ UA + device id). Entries in
+-// `base` win, so a panel spec pins its own UA/x-hwid without being clobbered.
++// Explicit headers supplied by the user take precedence.
+ Future<Map<String, String>> happHeaders({Map<String, String>? base}) async {
+   final headers = {...?base};
+   headers.putIfAbsent('User-Agent', () => happUserAgent);
+-  if (!headers.containsKey(happHwidHeader)) {
+-    headers[happHwidHeader] = await ensureHwid();
+-  }
+   return headers;
+ }
 diff --git a/lib/views/dashboard/dashboard.dart b/lib/views/dashboard/dashboard.dart
 index ae06014..9d8e58c 100644
 --- a/lib/views/dashboard/dashboard.dart
@@ -475,3 +553,56 @@ index 681f721..d5d6cd1 100644
      // 1 = added, 2 = already there; below zero is our own "no system prompt
      // here", which leaves the QS editor as the only route.
      globalState.showNotifier(switch (code) {
+diff --git a/test/common/happ_test.dart b/test/common/happ_test.dart
+index 23c115c..9e7188d 100644
+--- a/test/common/happ_test.dart
++++ b/test/common/happ_test.dart
+@@ -1,45 +1,17 @@
+ import 'package:fl_clash/ingest/happ/happ_identity.dart';
+ import 'package:flutter_test/flutter_test.dart';
+-import 'package:shared_preferences/shared_preferences.dart';
+-
+-final _uuidV4 = RegExp(
+-  r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+-);
+ 
+ void main() {
+-  setUp(() {
+-    TestWidgetsFlutterBinding.ensureInitialized();
+-    SharedPreferences.setMockInitialValues({});
+-  });
+-
+-  test('generateHwid emits a well-formed RFC 4122 v4 UUID', () {
+-    for (var i = 0; i < 50; i++) {
+-      final id = generateHwid();
+-      expect(_uuidV4.hasMatch(id), true, reason: 'not a v4 UUID: $id');
+-    }
+-    expect(generateHwid() == generateHwid(), false, reason: 'must be random');
+-  });
+-
+-  test(
+-    'ensureHwid persists and reuses the same id (never burns a slot)',
+-    () async {
+-      final a = await ensureHwid();
+-      final b = await ensureHwid();
+-      expect(a, b);
+-      expect(_uuidV4.hasMatch(a), true);
+-    },
+-  );
+-
+   test(
+-    'happHeaders fills the Happ UA + self hwid but never clobbers base',
++    'happHeaders fills the Happ UA without adding a device identifier',
+     () async {
+       final merged = await happHeaders(base: {'User-Agent': 'Custom/1.0'});
+       expect(merged['User-Agent'], 'Custom/1.0');
+-      expect(merged[happHwidHeader], isNotEmpty);
++      expect(merged.containsKey('x-hwid'), false);
+ 
+       final bare = await happHeaders();
+       expect(bare['User-Agent'], 'Happ/3.6.0');
+-      expect(_uuidV4.hasMatch(bare[happHwidHeader]!), true);
++      expect(bare.containsKey('x-hwid'), false);
+     },
+   );
+ }
