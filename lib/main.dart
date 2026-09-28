@@ -6,12 +6,10 @@ import 'dart:ui';
 
 import 'package:clashmi/app/clash/clash_config.dart';
 import 'package:clashmi/app/local_services/vpn_service.dart';
-import 'package:clashmi/app/modules/auto_update_manager.dart';
 import 'package:clashmi/app/modules/biz.dart';
 import 'package:clashmi/app/modules/board_provider_manager.dart';
 import 'package:clashmi/app/modules/board_session_persistent_manager.dart';
 import 'package:clashmi/app/modules/clash_setting_manager.dart';
-import 'package:clashmi/app/modules/remote_config_manager.dart';
 import 'package:clashmi/app/modules/setting_manager.dart';
 import 'package:clashmi/app/utils/app_args.dart';
 import 'package:clashmi/app/utils/app_lifecycle_state_notify.dart';
@@ -54,7 +52,6 @@ void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocaleSettings.useDeviceLocale();
   await VPNService.initABI();
-  await RemoteConfigManager.init();
   await SettingManager.init();
   Log.setLevel(SettingManager.getConfig().logLevel);
   await BoardSessionPersistentManager.init();
@@ -160,7 +157,6 @@ Future<void> run(List<String> args) async {
       await windowManager.center();
     }
 
-    await AutoUpdateManager.init();
 
     bool disableOrientation = await DeviceUtils.disableOrientation();
     if (!disableOrientation) {

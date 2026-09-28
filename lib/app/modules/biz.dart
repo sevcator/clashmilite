@@ -40,7 +40,6 @@ class Biz {
     initAllFinish();
 
     AppLifecycleStateNofity.init();
-    BoardProviderNoticeManager.init();
   }
 
   static Future<void> uninit() async {

@@ -1,0 +1,179 @@
+diff --git a/adapter/outbound/reality.go b/adapter/outbound/reality.go
+index 70c7bc7..7ecb212 100644
+--- a/adapter/outbound/reality.go
++++ b/adapter/outbound/reality.go
+@@ -6,13 +6,16 @@ import (
+ 	"encoding/hex"
+ 	"errors"
+ 	"fmt"
++	"strconv"
++	"strings"
+ 
+ 	tlsC "github.com/metacubex/mihomo/component/tls"
+ )
+ 
+ type RealityOptions struct {
+-	PublicKey string `proxy:"public-key"`
+-	ShortID   string `proxy:"short-id,omitempty"`
++	PublicKey     string `proxy:"public-key"`
++	ShortID       string `proxy:"short-id,omitempty"`
++	ClientVersion string `proxy:"client-version,omitempty"`
+ 
+ 	SupportX25519MLKEM768 bool `proxy:"support-x25519mlkem768,omitempty"`
+ }
+@@ -21,6 +24,20 @@ func (o RealityOptions) Parse() (*tlsC.RealityConfig, error) {
+ 	if o.PublicKey != "" {
+ 		config := new(tlsC.RealityConfig)
+ 		config.SupportX25519MLKEM768 = o.SupportX25519MLKEM768
++		config.ClientVersion = tlsC.RealityClientVersion
++		if o.ClientVersion != "" {
++			parts := strings.Split(o.ClientVersion, ".")
++			if len(parts) != 3 {
++				return nil, errors.New("invalid REALITY client version: expected major.minor.patch")
++			}
++			for i, part := range parts {
++				value, err := strconv.ParseUint(part, 10, 8)
++				if err != nil {
++					return nil, fmt.Errorf("invalid REALITY client version component %q: %w", part, err)
++				}
++				config.ClientVersion[i] = byte(value)
++			}
++		}
+ 
+ 		const x25519ScalarSize = 32
+ 		publicKey, err := base64.RawURLEncoding.DecodeString(o.PublicKey)
+diff --git a/component/geodata/init.go b/component/geodata/init.go
+index 7b87844..ed153b0 100644
+--- a/component/geodata/init.go
++++ b/component/geodata/init.go
+@@ -69,6 +69,9 @@ func SetASNUrl(url string) {
+ }
+ 
+ func downloadToPath(url string, path string) (err error) {
++	if !geoDownloadsEnabled() {
++		return fmt.Errorf("automatic Geo database downloads are disabled in Clash Mi Lite")
++	}
+ 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*90)
+ 	defer cancel()
+ 	resp, err := mihomoHttp.HttpRequest(ctx, url, http.MethodGet, nil, nil)
+@@ -87,6 +90,8 @@ func downloadToPath(url string, path string) (err error) {
+ 	return err
+ }
+ 
++func geoDownloadsEnabled() bool { return false }
++
+ func InitGeoSite() error {
+ 	geoSiteEnable.Store(true)
+ 	initGeoSiteMutex.Lock()
+diff --git a/component/tls/reality.go b/component/tls/reality.go
+index ff6a0a3..1d4f91c 100644
+--- a/component/tls/reality.go
++++ b/component/tls/reality.go
+@@ -28,11 +28,16 @@ import (
+ 
+ const RealityMaxShortIDLen = 8
+ 
++// RealityClientVersion is the protocol version advertised to REALITY servers.
++// Xray-core v26.7.11 and newer require at least 26.3.27 by default.
++var RealityClientVersion = [3]byte{26, 3, 27}
++
+ type RealityConfig struct {
+ 	PublicKey *ecdh.PublicKey
+ 	ShortID   [RealityMaxShortIDLen]byte
+ 
+ 	SupportX25519MLKEM768 bool
++	ClientVersion         [3]byte
+ }
+ 
+ func GetRealityConn(ctx context.Context, conn net.Conn, fingerprint UClientHelloID, serverName string, realityConfig *RealityConfig) (net.Conn, error) {
+@@ -71,9 +76,7 @@ func GetRealityConn(ctx context.Context, conn net.Conn, fingerprint UClientHello
+ 		binary.BigEndian.PutUint64(hello.SessionId, uint64(ntp.Now().Unix()))
+ 
+ 		copy(hello.SessionId[8:], realityConfig.ShortID[:])
+-		hello.SessionId[0] = 1
+-		hello.SessionId[1] = 8
+-		hello.SessionId[2] = 2
++		copy(hello.SessionId[:3], realityConfig.ClientVersion[:])
+ 
+ 		//log.Debugln("REALITY hello.sessionId[:16]: %v", hello.SessionId[:16])
+ 
+diff --git a/component/updater/update_geo.go b/component/updater/update_geo.go
+index 63e6d15..46984f0 100644
+--- a/component/updater/update_geo.go
++++ b/component/updater/update_geo.go
+@@ -28,6 +28,8 @@ var (
+ 	updatingGeo atomic.Bool
+ )
+ 
++func geoDownloadsEnabled() bool { return false }
++
+ func GeoAutoUpdate() bool {
+ 	return autoUpdate
+ }
+@@ -37,7 +39,7 @@ func GeoUpdateInterval() int {
+ }
+ 
+ func SetGeoAutoUpdate(newAutoUpdate bool) {
+-	autoUpdate = newAutoUpdate
++	autoUpdate = false
+ }
+ 
+ func SetGeoUpdateInterval(newGeoUpdateInterval int) {
+@@ -45,6 +47,9 @@ func SetGeoUpdateInterval(newGeoUpdateInterval int) {
+ }
+ 
+ func UpdateMMDB() (err error) {
++	if !geoDownloadsEnabled() {
++		return errors.New("Geo database downloads are disabled in Clash Mi Lite")
++	}
+ 	vehicle := resource.NewHTTPVehicle(geodata.MmdbUrl(), C.Path.MMDB(), "", nil, defaultHttpTimeout, 0)
+ 	var oldHash utils.HashType
+ 	if buf, err := os.ReadFile(vehicle.Path()); err == nil {
+@@ -76,6 +81,9 @@ func UpdateMMDB() (err error) {
+ }
+ 
+ func UpdateASN() (err error) {
++	if !geoDownloadsEnabled() {
++		return errors.New("Geo database downloads are disabled in Clash Mi Lite")
++	}
+ 	vehicle := resource.NewHTTPVehicle(geodata.ASNUrl(), C.Path.ASN(), "", nil, defaultHttpTimeout, 0)
+ 	var oldHash utils.HashType
+ 	if buf, err := os.ReadFile(vehicle.Path()); err == nil {
+@@ -107,6 +115,9 @@ func UpdateASN() (err error) {
+ }
+ 
+ func UpdateGeoIp() (err error) {
++	if !geoDownloadsEnabled() {
++		return errors.New("Geo database downloads are disabled in Clash Mi Lite")
++	}
+ 	geoLoader, err := geodata.GetGeoDataLoader("standard")
+ 
+ 	vehicle := resource.NewHTTPVehicle(geodata.GeoIpUrl(), C.Path.GeoIP(), "", nil, defaultHttpTimeout, 0)
+@@ -137,6 +148,9 @@ func UpdateGeoIp() (err error) {
+ }
+ 
+ func UpdateGeoSite() (err error) {
++	if !geoDownloadsEnabled() {
++		return errors.New("Geo database downloads are disabled in Clash Mi Lite")
++	}
+ 	geoLoader, err := geodata.GetGeoDataLoader("standard")
+ 
+ 	vehicle := resource.NewHTTPVehicle(geodata.GeoSiteUrl(), C.Path.GeoSite(), "", nil, defaultHttpTimeout, 0)
+diff --git a/config/config.go b/config/config.go
+index 5a66ce6..63d9cfd 100644
+--- a/config/config.go
++++ b/config/config.go
+@@ -579,12 +579,7 @@ func DefaultRawConfig() *RawConfig {
+ 		Profile: RawProfile{
+ 			StoreSelected: true,
+ 		},
+-		GeoXUrl: RawGeoXUrl{
+-			Mmdb:    "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb",
+-			ASN:     "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
+-			GeoIp:   "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
+-			GeoSite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
+-		},
++		GeoXUrl: RawGeoXUrl{},
+ 		Sniffer: RawSniffer{
+ 			Enable:          false,
+ 			Sniff:           map[string]RawSniffingConfig{},

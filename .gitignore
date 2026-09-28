@@ -73,3 +73,5 @@ ios/clashmiWidget/VpnServiceHandler.swift
 /android/.kotlin
 /android/build
 /dist
+/core/_work/
+/core/mihomo/

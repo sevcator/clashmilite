@@ -324,14 +324,11 @@ class ClashSettingManager {
 
   static RawExtensionGeoRuleset defaultRawExtensionRuleset() {
     return RawExtensionGeoRuleset.by(
-      GeoSiteUrl:
-          "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite",
-      GeoIpUrl:
-          "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geoip",
-      AsnUrl:
-          "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/asn",
-      UpdateInterval: 2 * 24 * 3600,
-      EnableProxy: true,
+      GeoSiteUrl: "",
+      GeoIpUrl: "",
+      AsnUrl: "",
+      UpdateInterval: 0,
+      EnableProxy: false,
     );
   }
 
@@ -608,12 +605,12 @@ class ClashSettingManager {
       );
     }
 
-    if (_setting.Extension?.Ruleset.AsnUrl ==
-        "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/asn") {
-      _setting.Extension?.Ruleset.AsnUrl =
-          "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/asn";
-      await save();
-    }
+    // Existing installations may have inherited automatic Geo database URLs.
+    _setting.Extension?.Ruleset.GeoSiteUrl = "";
+    _setting.Extension?.Ruleset.GeoIpUrl = "";
+    _setting.Extension?.Ruleset.AsnUrl = "";
+    _setting.Extension?.Ruleset.UpdateInterval = 0;
+    _setting.Extension?.Ruleset.EnableProxy = false;
   }
 
   static Future<void> _initFixed() async {

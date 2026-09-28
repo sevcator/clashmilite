@@ -586,9 +586,5 @@ class BoardProviderManager {
       await _save();
     }
     await updateSessionProviders();
-    final sessionNames = BoardSessionPersistentManager.instance().getAllNames();
-    for (var name in sessionNames) {
-      getProvider(name);
-    }
   }
 }

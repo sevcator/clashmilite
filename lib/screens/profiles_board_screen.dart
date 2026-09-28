@@ -1,20 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:after_layout/after_layout.dart';
 import 'package:clashmi/app/modules/profile_manager.dart';
-import 'package:clashmi/app/modules/remote_config_manager.dart';
-import 'package:clashmi/app/modules/board_provider_manager.dart';
-import 'package:clashmi/app/utils/url_launcher_utils.dart';
 import 'package:clashmi/i18n/strings.g.dart';
 import 'package:clashmi/screens/add_profile_by_import_from_file_screen.dart';
 import 'package:clashmi/screens/add_profile_by_scan_qrcode_screen.dart';
 import 'package:clashmi/screens/add_profile_by_url_screen.dart';
 import 'package:clashmi/screens/dialog_utils.dart';
-import 'package:clashmi/screens/login_step_provider_screen.dart';
 import 'package:clashmi/screens/profiles_board_screen_widgets.dart';
 import 'package:clashmi/screens/theme_config.dart';
-import 'package:clashmi/screens/webview_helper.dart';
 import 'package:clashmi/screens/widgets/framework.dart';
 import 'package:clashmi/screens/widgets/sheet.dart';
 import 'package:flutter/material.dart';
@@ -173,63 +167,7 @@ class _ProfilesBoardScreenState extends LasyRenderingState<ProfilesBoardScreen>
 
   void onTapAdd() async {
     final tcontext = Translations.of(context);
-    bool hideGetProfile = false;
-    final currentProfile = ProfileManager.getCurrent();
-    if (currentProfile != null && currentProfile.boardProviderId.isNotEmpty) {
-      var provider = BoardProviderManager.getProviderById(
-        currentProfile.boardProviderId,
-      );
-      if (provider != null && provider.hideRecommendMenu) {
-        hideGetProfile = true;
-      }
-    }
-    final cn =
-        WidgetsBinding.instance.platformDispatcher.locale.countryCode == "CN";
-    final login = ListTile(
-      leading: const Icon(Icons.login_outlined),
-      title: Text(tcontext.loginScreen.login),
-      onTap: () async {
-        Navigator.of(context).pop();
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            settings: LoginStepProviderScreen.routeSettings(),
-            builder: (context) => const LoginStepProviderScreen(),
-          ),
-        );
-      },
-    );
     var widgets = [
-      if (!hideGetProfile) ...[
-        ListTile(
-          leading: const Icon(Icons.shopping_cart_outlined),
-          title: Text(
-            Platform.isIOS
-                ? tcontext.meta.getProfile
-                : "${tcontext.meta.getProfile} / ${tcontext.meta.buyProfile}",
-          ),
-          onTap: () async {
-            Navigator.of(context).pop();
-            var remoteConfig = RemoteConfigManager.getConfig();
-
-            String url = remoteConfig.getTranffic;
-
-            url = await UrlLauncherUtils.reorganizationUrlWithAnchor(url);
-
-            if (!mounted) {
-              return;
-            }
-            await WebviewHelper.loadUrl(
-              context,
-              url,
-              "getTranffic",
-              title: tcontext.meta.getProfile,
-              inappWebViewOpenExternal: true,
-            );
-          },
-        ),
-      ],
-      if (cn) ...[login],
       ListTile(
         leading: const Icon(Icons.add_link_outlined),
         title: Text(tcontext.meta.profileAddUrlOrContent),

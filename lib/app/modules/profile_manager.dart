@@ -7,17 +7,13 @@ import 'dart:io';
 import 'package:clashmi/app/local_services/vpn_service.dart';
 import 'package:clashmi/app/modules/board_provider_manager.dart';
 import 'package:clashmi/app/modules/setting_manager.dart';
-import 'package:clashmi/app/private/app_url_utils_private.dart';
 import 'package:clashmi/app/runtime/return_result.dart';
 import 'package:clashmi/app/utils/app_lifecycle_state_notify.dart';
-import 'package:clashmi/app/utils/app_utils.dart';
 import 'package:clashmi/app/utils/convert_utils.dart';
 import 'package:clashmi/app/utils/date_time_utils.dart';
-import 'package:clashmi/app/utils/did.dart';
 import 'package:clashmi/app/utils/download_utils.dart';
 import 'package:clashmi/app/utils/file_utils.dart';
 import 'package:clashmi/app/utils/http_utils.dart';
-import 'package:clashmi/app/utils/hwid_utils.dart';
 import 'package:clashmi/app/utils/log.dart';
 import 'package:clashmi/app/utils/path_utils.dart';
 import 'package:clashmi/app/utils/platform_utils.dart';
@@ -621,34 +617,7 @@ class ProfileManager {
       }
     }
     if (result.error != null) {
-      bool success = false;
-      if (!HttpUtils.isStatusError(result.error!) &&
-          boardProviderId.isNotEmpty) {
-        final provider = BoardProviderManager.getProviderById(boardProviderId);
-        if (boardProviderId == BoardProviderManager.unknownProviderId ||
-            (provider != null && provider.unbanSubscription)) {
-          final result2 = await downloadByProviderProxy(
-            boardProviderId,
-            url,
-            userAgent,
-            xhwid,
-          );
-          if (result2.error == null && result2.data!.item1 == 200) {
-            try {
-              var file = File(savePath);
-              await file.writeAsString(result2.data!.item2, flush: true);
-              success = true;
-            } catch (err) {
-              Log.w(
-                "addRemote downloadByProviderProxy exception ${err.toString()} ",
-              );
-            }
-          }
-        }
-      }
-      if (!success) {
-        return ReturnResult(error: result.error);
-      }
+      return ReturnResult(error: result.error);
     }
     Duration? updateIntervalByProfile;
     if (result.data != null) {
@@ -823,42 +792,14 @@ class ProfileManager {
       }
     }
     if (result.error != null) {
-      bool success = false;
-      if (!HttpUtils.isStatusError(result.error!) &&
-          profile.boardProviderId.isNotEmpty) {
-        final provider = BoardProviderManager.getProviderById(
-          profile.boardProviderId,
-        );
-        if (provider != null && provider.unbanSubscription) {
-          final result2 = await downloadByProviderProxy(
-            profile.boardProviderId,
-            profile.url,
-            userAgent,
-            profile.xhwid,
-          );
-          if (result2.error == null && result2.data!.item1 == 200) {
-            try {
-              var file = File(savePath);
-              await file.writeAsString(result2.data!.item2, flush: true);
-              success = true;
-            } catch (err) {
-              Log.w(
-                "update downloadByProviderProxy exception ${err.toString()} ",
-              );
-            }
-          }
+      updating.remove(id);
+      Future.delayed(const Duration(milliseconds: 10), () async {
+        for (var event in onEventUpdate) {
+          event(id, true);
         }
-      }
-      if (!success) {
-        updating.remove(id);
-        Future.delayed(const Duration(milliseconds: 10), () async {
-          for (var event in onEventUpdate) {
-            event(id, true);
-          }
-        });
-        profile.updateFailed = DateTime.now();
-        return result.error;
-      }
+      });
+      profile.updateFailed = DateTime.now();
+      return result.error;
     }
     profile.update = DateTime.now();
     profile.updateFailed = null;
@@ -959,53 +900,6 @@ class ProfileManager {
       );
     }
     return null;
-  }
-
-  static Future<ReturnResult<Tuple2<int, String>>> downloadByProviderProxy(
-    String boardProviderId,
-    String url,
-    String userAgent,
-    bool xhwid,
-  ) async {
-    var headers = {
-      HttpHeaders.contentTypeHeader: "application/json; charset=UTF-8",
-    };
-    if (boardProviderId.startsWith(BoardProviderManager.unknownProviderId)) {
-      boardProviderId = BoardProviderManager.unknownProviderId;
-    }
-    final urlAndbody = ProfileProxyProviderPrivate.getProviderProxyUrlAndBody(
-      app: AppUtils.getName(),
-      version: AppUtils.getBuildinVersion(),
-      did: await Did.getDid(),
-      boardProviderId: boardProviderId,
-      url: url,
-      userAgent: userAgent.isEmpty ? await HttpUtils.getUserAgent() : userAgent,
-      xhwidHeaders: xhwid ? await HwidUtils.getHwidHeaders() : {},
-    );
-
-    var result = await HttpUtils.httpPostRequest(
-      urlAndbody.item1,
-      null,
-      headers,
-      urlAndbody.item3,
-      const Duration(seconds: 30),
-      null,
-      null,
-      null,
-    );
-    if (result.error != null && urlAndbody.item2.isNotEmpty) {
-      result = await HttpUtils.httpPostRequest(
-        urlAndbody.item2,
-        null,
-        headers,
-        urlAndbody.item3,
-        const Duration(seconds: 30),
-        null,
-        null,
-        null,
-      );
-    }
-    return result;
   }
 
   static Future<void> updateByTicker() async {
