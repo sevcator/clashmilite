@@ -1,0 +1,187 @@
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+index 276fbd8..fee349d 100644
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -46,12 +46,12 @@ android {
+     }
+ 
+     defaultConfig {
+-        applicationId = "com.follow.clash"
++        applicationId = "org.sevcator.clashmilite"
+         minSdk = flutter.minSdkVersion
+         targetSdk = libs.versions.targetSdk.get().toInt()
+         versionCode = flutter.versionCode
+         versionName = flutter.versionName
+-        manifestPlaceholders["appLabel"] = "FlClash"
++        manifestPlaceholders["appLabel"] = "Clash Mi Lite"
+         manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
+         buildConfigField(
+             "String", "BUNDLED_MIHOMO_VERSION",
+@@ -80,7 +80,7 @@ android {
+         debug {
+             isMinifyEnabled = false
+             applicationIdSuffix = ".dev"
+-            manifestPlaceholders["appLabel"] = "FlClash Dev"
++            manifestPlaceholders["appLabel"] = "Clash Mi Lite"
+             manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
+         }
+ 
+@@ -92,7 +92,7 @@ android {
+             } else {
+                 signingConfig = signingConfigs.getByName("debug")
+                 applicationIdSuffix = ".dev"
+-                manifestPlaceholders["appLabel"] = "FlClash Dev"
++                manifestPlaceholders["appLabel"] = "Clash Mi Lite"
+                 manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher_dev"
+             }
+ 
+diff --git a/lib/common/constant.dart b/lib/common/constant.dart
+index 9b830d0..e4a4622 100644
+--- a/lib/common/constant.dart
++++ b/lib/common/constant.dart
+@@ -9,7 +9,7 @@ import 'package:fl_clash/enum/enum.dart';
+ import 'package:fl_clash/models/models.dart';
+ import 'package:flutter/material.dart';
+ 
+-const appName = 'FlClash';
++const appName = 'Clash Mi Lite';
+ const coreName = 'clash.meta';
+ const browserUa =
+     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+@@ -51,7 +51,7 @@ const localhost = '127.0.0.1';
+ const clashConfigKey = 'clash_config';
+ const configKey = 'config';
+ const double dialogCommonWidth = 300;
+-const repository = 'oviron/FlClash';
++const repository = 'sevcator/clashmilite';
+ const upstreamRepository = 'chen08209/FlClash';
+ const defaultTestUrl = 'https://www.gstatic.com/generate_204';
+ 
+diff --git a/lib/common/request.dart b/lib/common/request.dart
+index b7d0617..322085b 100644
+--- a/lib/common/request.dart
++++ b/lib/common/request.dart
+@@ -119,6 +119,8 @@ class Request {
+   };
+ 
+   Future<Result<IpInfo?>> checkIp({CancelToken? cancelToken}) async {
++    // Clash Mi Lite does not contact third-party IP or GeoIP services.
++    return Result.success(null);
+     // VPN on  → JNI probe (mode-aware target, bypasses user rules).
+     // VPN off → 7-source dio fallback below (direct system path).
+     if (appController.isStart) {
+diff --git a/lib/common/task.dart b/lib/common/task.dart
+index d7c2cfb..d2c8a35 100644
+--- a/lib/common/task.dart
++++ b/lib/common/task.dart
+@@ -178,7 +178,12 @@ Future<Map<String, dynamic>> _makeRealProfileTask(
+   confineProviders('proxy-providers', 'proxies');
+   confineProviders('rule-providers', 'rules');
+   _mapAt(rawConfig, 'profile')['store-selected'] = false;
+-  rawConfig['geox-url'] = realPatchConfig.geoXUrl.toJson();
++  rawConfig['geox-url'] = {
++    'mmdb': '',
++    'asn': '',
++    'geoip': '',
++    'geosite': '',
++  };
+   rawConfig['global-ua'] ??= defaultUA;
+   final clientFingerprint = rawConfig['global-client-fingerprint'];
+   if (clientFingerprint is! String || clientFingerprint.isEmpty) {
+diff --git a/lib/controllers/init_controller.dart b/lib/controllers/init_controller.dart
+index bb97eed..da82f81 100644
+--- a/lib/controllers/init_controller.dart
++++ b/lib/controllers/init_controller.dart
+@@ -15,7 +15,6 @@ extension InitControllerExt on AppController {
+     await seedGeositeIfMissing();
+     await _initCore();
+     await _initStatus();
+-    unawaited(autoUpdateGeo());
+     _ref.read(initProvider.notifier).value = true;
+   }
+ 
+diff --git a/lib/controllers/setup_controller.dart b/lib/controllers/setup_controller.dart
+index f1a4b57..1ff785e 100644
+--- a/lib/controllers/setup_controller.dart
++++ b/lib/controllers/setup_controller.dart
+@@ -291,7 +291,7 @@ extension SetupControllerExt on AppController {
+         'geo data warning on setup: $message',
+         logLevel: LogLevel.warning,
+       );
+-      unawaited(seedGeositeIfMissing().then((_) => updateGeoDatabases()));
++      unawaited(seedGeositeIfMissing());
+     }
+     await onConfigApplied?.call();
+     addCheckIp();
+diff --git a/lib/views/tools.dart b/lib/views/tools.dart
+index 681f721..d5d6cd1 100644
+--- a/lib/views/tools.dart
++++ b/lib/views/tools.dart
+@@ -13,8 +13,6 @@ import 'package:fl_clash/views/config/network.dart';
+ import 'package:fl_clash/views/config/rules.dart';
+ import 'package:fl_clash/views/config/scripts.dart';
+ import 'package:fl_clash/views/privacy.dart';
+-import 'package:fl_clash/views/resources.dart';
+-import 'package:fl_clash/views/setting/library_version.dart';
+ import 'package:fl_clash/views/setting/logging.dart';
+ import 'package:fl_clash/views/setting/resource_usage.dart';
+ import 'package:fl_clash/views/setting/network_rules.dart';
+@@ -76,9 +74,7 @@ class _ToolViewState extends ConsumerState<ToolsView> {
+       title: appLocalizations.engine,
+       items: const [
+         _CoreItem(),
+-        _LibraryItem(),
+         _DnsItem(),
+-        _GeoDatabasesItem(),
+         _RoutingRulesItem(),
+         _ScriptsItem(),
+       ],
+@@ -260,20 +256,6 @@ class _CoreItem extends StatelessWidget {
+   }
+ }
+ 
+-class _LibraryItem extends StatelessWidget {
+-  const _LibraryItem();
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return ListItem.open(
+-      leading: const Icon(Icons.dataset_outlined),
+-      title: Text(appLocalizations.libraryVersion),
+-      subtitle: Text(appLocalizations.libraryVersionDesc),
+-      delegate: const OpenDelegate(widget: LibraryVersionView()),
+-    );
+-  }
+-}
+-
+ class _DnsItem extends StatelessWidget {
+   const _DnsItem();
+ 
+@@ -338,26 +320,12 @@ class _ScriptsItem extends StatelessWidget {
+   }
+ }
+ 
+-class _GeoDatabasesItem extends StatelessWidget {
+-  const _GeoDatabasesItem();
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return ListItem.open(
+-      leading: const Icon(Icons.public_outlined),
+-      title: Text(appLocalizations.geoDatabases),
+-      subtitle: Text(appLocalizations.geoDatabasesDesc),
+-      delegate: const OpenDelegate(widget: ResourcesView()),
+-    );
+-  }
+-}
+-
+ class _QuickTileItem extends StatelessWidget {
+   const _QuickTileItem();
+ 
+   Future<void> _request(BuildContext context) async {
+     final l10n = context.appLocalizations;
+-    final code = await app?.requestAddTile('FlClash') ?? -1;
++    final code = await app?.requestAddTile('Clash Mi Lite') ?? -1;
+     // 1 = added, 2 = already there; below zero is our own "no system prompt
+     // here", which leaves the QS editor as the only route.
+     globalState.showNotifier(switch (code) {

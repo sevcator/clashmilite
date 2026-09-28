@@ -18,6 +18,14 @@ The script fetches the pinned Mihomo revision, verifies it, applies [the fork pa
 
 ## Flutter app build status
 
-The original Clash Mi source published on GitHub does not include `libclash-vpn-service`, `board-service`, `lib/app/private`, the generated build metadata, or the native core bindings. Both package URLs in `pubspec.yaml` return 404. [The upstream issue](https://github.com/KaringX/clashmi/issues/350) says `libclash-vpn-service` is closed source. The Android native library in the published source is also absent. Consequently the Flutter app cannot currently be compiled from this repository on any target. The core executables above are not installable Flutter apps or mobile VPN packages.
+The original Clash Mi source published on GitHub does not include `libclash-vpn-service`, `board-service`, `lib/app/private`, the generated build metadata, or the native core bindings. Both package URLs in `pubspec.yaml` return 404. [The upstream issue](https://github.com/KaringX/clashmi/issues/350) says `libclash-vpn-service` is closed source. The original Flutter app cannot be compiled from this repository as published.
 
-To make installable apps, these components need open replacements with equivalent Flutter and native APIs, followed by platform builds and signing on their respective toolchains. No release is claimed until those builds succeed.
+### Android replacement app
+
+`core/build-android-app.sh` builds an installable Android app using pinned GPL-3.0 sources from [oviron/FlClash](https://github.com/oviron/FlClash) and [oviron/libmihomo-android](https://github.com/oviron/libmihomo-android). It compiles the Android wrapper against the same patched Mihomo v1.19.31 source used for the CLI builds and applies `core/patches/flclash-android-lite.patch` to the Flutter app. The replacement has a different interface from the original Clash Mi app.
+
+The app patch names the app Clash Mi Lite, removes the automatic Geo update paths and IP information requests, removes the Geo download and core replacement screens, and clears Geo URLs in the generated core configuration. The bundled local GeoSite file remains available for rules. Profile subscription updates still contact only the URL the user adds. The core also blocks Geo database downloads.
+
+GitHub Actions `Build Android APK` produces split APKs for arm64, armv7, and x86_64 in its `clash-mi-lite-android-apks` artifact. These are installable preview builds signed with the standard Android debug key and use the package ID `org.sevcator.clashmilite.dev`; they are not production signed. To build locally, install Flutter 3.35.7, Go 1.27, Java 17 and Android SDK with NDK 28.0.13004108, then run `bash core/build-android-app.sh` on Linux. APKs appear in `dist/`.
+
+No installable Windows, Linux, macOS or iOS app package is currently built. The core executables for those platforms are command line tools only.

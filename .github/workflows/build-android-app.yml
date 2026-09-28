@@ -1,0 +1,42 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - core/build-android-app.sh
+      - core/patches/flclash-android-lite.patch
+      - core/patches/mihomo-reality-client-version.patch
+      - .github/workflows/build-android-app.yml
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.35.7
+          cache: true
+      - name: Install Android SDK and NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.0.13004108" "cmake;3.22.1" "platforms;android-36"
+      - name: Build patched Android app
+        run: bash core/build-android-app.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clash-mi-lite-android-apks
+          path: dist/Clash-Mi-Lite-android-*.apk
+          if-no-files-found: error
