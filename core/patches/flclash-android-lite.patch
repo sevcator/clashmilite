@@ -271,8 +271,46 @@ index b4233f0..841d18d 100644
 -  }
    return headers;
  }
+diff --git a/lib/pages/home.dart b/lib/pages/home.dart
+index 6443637..af9d651 100644
+--- a/lib/pages/home.dart
++++ b/lib/pages/home.dart
+@@ -26,6 +26,9 @@ class HomePage extends StatelessWidget {
+             );
+             final navigationItems = state.navigationItems;
+             final currentIndex = state.currentIndex;
++            final isDashboard = currentIndex >= 0 &&
++                currentIndex < navigationItems.length &&
++                navigationItems[currentIndex].label == PageLabel.dashboard;
+             final bottomNavigationBar = NavigationBarTheme(
+               data: _NavigationBarDefaultsM3(context),
+               child: NavigationBar(
+@@ -60,14 +63,15 @@ class HomePage extends StatelessWidget {
+                       child: child!,
+                     ),
+                   ),
+-                  MediaQuery.removePadding(
+-                    removeTop: true,
+-                    removeBottom: false,
+-                    removeLeft: true,
+-                    removeRight: true,
+-                    context: context,
+-                    child: bottomNavigationBar,
+-                  ),
++                  if (!isDashboard)
++                    MediaQuery.removePadding(
++                      removeTop: true,
++                      removeBottom: false,
++                      removeLeft: true,
++                      removeRight: true,
++                      context: context,
++                      child: bottomNavigationBar,
++                    ),
+                 ],
+               ),
+             );
 diff --git a/lib/views/dashboard/dashboard.dart b/lib/views/dashboard/dashboard.dart
-index ae06014..9d8e58c 100644
+index ae06014..c49367f 100644
 --- a/lib/views/dashboard/dashboard.dart
 +++ b/lib/views/dashboard/dashboard.dart
 @@ -7,13 +7,13 @@ import 'package:fl_clash/controller.dart';
@@ -308,7 +346,7 @@ index ae06014..9d8e58c 100644
    @override
    void dispose() {
      _isEditNotifier.dispose();
-@@ -279,8 +290,26 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -279,8 +290,24 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
      });
      return _buildIsEdit(
        (isEdit) => CommonScaffold(
@@ -322,8 +360,6 @@ index ae06014..9d8e58c 100644
 +                  onPressed: () => appController.toPage(PageLabel.tools),
 +                  icon: const Icon(Icons.settings_outlined),
 +                ),
-+                title: const Text('Clash Mi Lite'),
-+                centerTitle: true,
 +                actions: [
 +                  IconButton(
 +                    tooltip: appLocalizations.addProfile,
@@ -337,7 +373,7 @@ index ae06014..9d8e58c 100644
          body: Align(
            alignment: Alignment.topCenter,
            child: SingleChildScrollView(
-@@ -307,7 +336,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
+@@ -307,7 +334,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
                  : Column(
                      children: [
                        const DashboardHero(),
@@ -346,7 +382,7 @@ index ae06014..9d8e58c 100644
                        DashboardDetailsSection(
                          openNotifier: _detailsOpenNotifier,
 diff --git a/lib/views/dashboard/widgets/hero.dart b/lib/views/dashboard/widgets/hero.dart
-index 93be822..b9e50ed 100644
+index 93be822..ce06f73 100644
 --- a/lib/views/dashboard/widgets/hero.dart
 +++ b/lib/views/dashboard/widgets/hero.dart
 @@ -2,6 +2,7 @@ import 'package:fl_clash/common/common.dart';
@@ -357,7 +393,7 @@ index 93be822..b9e50ed 100644
  import 'package:fl_clash/providers/database.dart';
  import 'package:fl_clash/providers/providers.dart';
  import 'package:fl_clash/views/profiles/add.dart';
-@@ -14,24 +15,82 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+@@ -14,24 +15,84 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
  class DashboardHero extends ConsumerWidget {
    const DashboardHero({super.key});
  
@@ -387,8 +423,10 @@ index 93be822..b9e50ed 100644
 -            label: Text(appLocalizations.quickStartPasteKey),
 -          ),
 +      final scheme = context.colorScheme;
++      final viewportHeight = MediaQuery.sizeOf(context).height;
++      final heroHeight = viewportHeight * 0.80;
 +      return SizedBox(
-+        height: MediaQuery.sizeOf(context).height * 0.67,
++        height: heroHeight < 410 ? 410 : heroHeight,
 +        child: Column(
 +          children: [
 +            const Spacer(),
@@ -452,7 +490,7 @@ index 93be822..b9e50ed 100644
          ),
        );
      }
-@@ -70,7 +129,7 @@ class _ConnectButton extends ConsumerWidget {
+@@ -70,7 +131,7 @@ class _ConnectButton extends ConsumerWidget {
      final on = ref.watch(isStartProvider);
      final connecting = ref.watch(coreStatusProvider) == CoreStatus.connecting;
      final scheme = context.colorScheme;
@@ -461,7 +499,7 @@ index 93be822..b9e50ed 100644
      return GestureDetector(
        onTap: () => _toggle(ref),
        child: SizedBox(
-@@ -103,7 +162,7 @@ class _ConnectButton extends ConsumerWidget {
+@@ -103,7 +164,7 @@ class _ConnectButton extends ConsumerWidget {
                decoration: BoxDecoration(
                  shape: BoxShape.circle,
                  border: Border.all(
@@ -470,7 +508,7 @@ index 93be822..b9e50ed 100644
                    width: 2,
                  ),
                ),
-@@ -113,9 +172,7 @@ class _ConnectButton extends ConsumerWidget {
+@@ -113,9 +174,7 @@ class _ConnectButton extends ConsumerWidget {
                height: size - 24,
                decoration: BoxDecoration(
                  shape: BoxShape.circle,
