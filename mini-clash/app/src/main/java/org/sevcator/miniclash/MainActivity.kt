@@ -70,7 +70,7 @@ class MainActivity : Activity() {
             input.startsWith("incy://import/") -> input.removePrefix("incy://import/")
             else -> input
         }
-        showAdd(unwrapped)
+        showAdd(android.net.Uri.decode(unwrapped))
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
@@ -247,6 +247,13 @@ class MainActivity : Activity() {
 
     private fun addInput(input: String) {
         if (input.isBlank()) return
+        val wrapped = when {
+            input.startsWith("happ://add/", true) -> input.substring("happ://add/".length)
+            input.startsWith("incy://add/", true) -> input.substring("incy://add/".length)
+            input.startsWith("incy://import/", true) -> input.substring("incy://import/".length)
+            else -> null
+        }
+        if (wrapped != null) return addInput(android.net.Uri.decode(wrapped))
         if (input.startsWith("incy://crypt1/")) {
             val decoded = runCatching { IncyCrypt1.decode(input).first }
                 .getOrElse { return message(it.message ?: "Cannot decode INCY link") }
