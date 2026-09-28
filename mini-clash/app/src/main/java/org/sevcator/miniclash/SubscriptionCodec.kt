@@ -194,12 +194,23 @@ object SubscriptionCodec {
             proxy["flow"] = query["flow"].orEmpty()
             if (query["encryption"].orEmpty() !in listOf("", "none")) error("Unsupported VLESS encryption")
         }
+        if (scheme == "hysteria2" || scheme == "hy2") {
+            query["obfs"]?.takeIf { it.isNotBlank() }?.let { proxy["obfs"] = it }
+            (query["obfs-password"] ?: query["obfsParam"])?.takeIf { it.isNotBlank() }?.let { proxy["obfs-password"] = it }
+            query["mport"]?.takeIf { it.isNotBlank() }?.let { proxy["ports"] = it }
+            query["hop-interval"]?.toIntOrNull()?.let { proxy["hop-interval"] = it }
+            query["upmbps"]?.toIntOrNull()?.let { proxy["up"] = "$it Mbps" }
+            query["downmbps"]?.toIntOrNull()?.let { proxy["down"] = "$it Mbps" }
+        }
         val security = query["security"].orEmpty().lowercase()
         if (security == "tls" || security == "reality" || scheme == "trojan") proxy["tls"] = true
         if (security == "reality") proxy["reality-opts"] = mapOf(
             "public-key" to (query["pbk"] ?: query["publicKey"] ?: ""), "short-id" to (query["sid"] ?: ""))
-        (query["sni"] ?: query["servername"])?.takeIf { it.isNotBlank() }?.let { proxy["servername"] = it }
+        (query["sni"] ?: query["servername"])?.takeIf { it.isNotBlank() }?.let {
+            proxy[if (scheme == "hysteria2" || scheme == "hy2") "sni" else "servername"] = it
+        }
         (query["fp"] ?: query["fingerprint"])?.takeIf { it.isNotBlank() }?.let { proxy["client-fingerprint"] = it }
+        if (security == "reality" && !proxy.containsKey("client-fingerprint")) proxy["client-fingerprint"] = "chrome"
         query["alpn"]?.takeIf { it.isNotBlank() }?.let { proxy["alpn"] = it.split(',') }
         if (query["allowInsecure"] == "1" || query["insecure"] == "1") proxy["skip-cert-verify"] = true
         val network = query["type"].orEmpty()

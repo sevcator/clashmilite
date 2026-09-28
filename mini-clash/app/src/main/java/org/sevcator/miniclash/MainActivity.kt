@@ -162,7 +162,8 @@ class MainActivity : Activity() {
         addCard(chainCard)
         addCard(card().apply {
             addView(text("LOCAL PROXY", 12f, muted, true)); addView(spacer(5))
-            addView(text("127.0.0.1:${store.actualPort}", 17f, inkColor, true))
+            val portLabel = runCatching { "127.0.0.1:${store.actualPort}" }.getOrDefault("Choose a valid port in Settings")
+            addView(text(portLabel, 17f, inkColor, true))
             addView(text("Port and credentials are randomized when left blank", 12f, muted))
             addView(spacer(8))
             addView(action("Show credentials") {
@@ -338,6 +339,7 @@ class MainActivity : Activity() {
             addView(text("SUBSCRIPTIONS", 12f, accent, true)); addView(spacer(10))
             field("User Agent", s.userAgent, "MiniClash/0.1.0 Android") { s.userAgent = it }
             field("HWID override", s.hwid, "Android ID by default") { s.hwid = it }
+            addView(text("For a subscription tied to Happ, enter the HWID shown in Happ here.", 12f, muted))
             toggle("Send HWID to subscription", s.sendHwid) { s.sendHwid = it }
             val deviceHwid = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID).orEmpty()
             addView(text("Device HWID: $deviceHwid", 12f, muted))

@@ -41,7 +41,10 @@ class Store(private val context: Context) {
     val subscriptions = mutableListOf<Subscription>()
     val chain = mutableListOf<String>()
     var activeId: String = file.getString("activeId", "") ?: ""
-    val actualPort: Int get() = settings.port.toIntOrNull() ?: file.getInt("generatedPort", 0).takeIf { it > 0 }
+    val actualPort: Int get() = if (settings.port.isNotBlank()) {
+        settings.port.toIntOrNull()?.takeIf { it in 1..65535 }
+            ?: throw IllegalArgumentException("Port must be 1-65535")
+    } else file.getInt("generatedPort", 0).takeIf { it > 0 }
         ?: (20000 + SecureRandom().nextInt(30000)).also { file.edit().putInt("generatedPort", it).apply() }
     val actualUser: String get() = settings.username.ifBlank { generated("generatedUser") }
     val actualPassword: String get() = settings.password.ifBlank { generated("generatedPassword") }
