@@ -26,6 +26,8 @@ bash core/build-android-app.sh
 
 The script fetches pinned [`libmihomo-android`](https://github.com/oviron/libmihomo-android) and Mihomo revisions, applies the core patch, builds the native library and Android app, then writes `dist/Mini-Clash-android-universal.apk`. The APK is a preview signed with the standard Android debug key. The [GitHub Actions workflow](.github/workflows/build-android-app.yml) runs the same build and uploads the APK as an artifact.
 
+Download the [Mini Clash 0.1.0 Android preview APK](https://github.com/sevcator/clashmilite/releases/download/v0.1.0-mini-clash-android-preview/Mini-Clash-android-universal.apk) from the GitHub release. SHA-256: `0f95104e246ad4e35b3279a9cfd0b31e7159e4b8cd1b15adaf54c8563563c0fe`.
+
 ## Core
 
 The core is pinned to Mihomo v1.19.31 commit `ab405bad5beeeac8b003bb01f60f134f6df54471`. The [patch](core/patches/mihomo-reality-client-version.patch) sets the default REALITY client handshake version to `26.3.27`, lets profiles override it, and disables Geo database downloads. It does not claim that Mihomo is Xray-core or inherits Xray's security fixes. Existing local Geo data can still be used.
