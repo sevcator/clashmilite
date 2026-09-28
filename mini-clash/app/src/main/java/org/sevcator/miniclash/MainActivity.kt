@@ -55,12 +55,19 @@ class MainActivity : Activity() {
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
             else -> null
         } ?: return
+        if (input.startsWith("incy://crypt1/")) {
+            val decoded = runCatching { IncyCrypt1.decode(input) }
+                .getOrElse { return message(it.message ?: "Cannot decode INCY link") }
+            AlertDialog.Builder(this).setTitle("Import subscription")
+                .setMessage("Add ${decoded.second.ifBlank { "this provider" }} to Mini Clash?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Add") { _, _ -> addInput(decoded.first) }.show()
+            return
+        }
         val unwrapped = when {
             input.startsWith("happ://add/") -> input.removePrefix("happ://add/")
             input.startsWith("incy://add/") -> input.removePrefix("incy://add/")
             input.startsWith("incy://import/") -> input.removePrefix("incy://import/")
-            input.startsWith("incy://crypt1/") -> runCatching { IncyCrypt1.decode(input).first }
-                .getOrElse { return message(it.message ?: "Cannot decode INCY link") }
             else -> input
         }
         showAdd(unwrapped)
@@ -156,9 +163,13 @@ class MainActivity : Activity() {
         addCard(card().apply {
             addView(text("LOCAL PROXY", 12f, muted, true)); addView(spacer(5))
             addView(text("127.0.0.1:${store.actualPort}", 17f, inkColor, true))
-            addView(text("User: ${store.actualUser}", 13f, muted))
-            addView(text("Password: ${store.actualPassword}", 13f, muted))
             addView(text("Port and credentials are randomized when left blank", 12f, muted))
+            addView(spacer(8))
+            addView(action("Show credentials") {
+                AlertDialog.Builder(this@MainActivity).setTitle("Local proxy access")
+                    .setMessage("Username: ${store.actualUser}\nPassword: ${store.actualPassword}")
+                    .setPositiveButton("Done", null).show()
+            })
         })
     }
 
@@ -170,6 +181,9 @@ class MainActivity : Activity() {
                 if (sub.description.isNotBlank()) addView(text(sub.description, 13f, muted))
                 val count = runCatching { SubscriptionCodec.parse(sub.content).proxies.size }.getOrDefault(0)
                 addView(text("$count servers" + if (sub.id == store.activeId) "  |  Active" else "", 13f, accent))
+                val servers = runCatching { SubscriptionCodec.parse(sub.content).proxies.map { it["name"].toString() } }.getOrDefault(emptyList())
+                servers.take(3).forEach { name -> addView(text("  $name", 13f, muted)) }
+                if (servers.size > 3) addView(text("  +${servers.size - 3} more", 12f, muted))
                 if (sub.userInfo.isNotBlank()) {
                     addView(spacer(8))
                     addView(text(formatUserInfo(sub.userInfo), 12f, muted))
@@ -185,6 +199,12 @@ class MainActivity : Activity() {
                 }
                 addView(spacer(10))
                 addView(action("Use") { store.activeId = sub.id; store.chain.clear(); store.save(); page = "home"; render() })
+                if (servers.isNotEmpty()) addView(action("Choose server") {
+                    AlertDialog.Builder(this@MainActivity).setTitle(sub.title).setItems(servers.toTypedArray()) { _, index ->
+                        store.activeId = sub.id; store.chain.clear(); store.chain += servers[index]
+                        store.save(); page = "home"; render()
+                    }.show()
+                })
                 if (sub.url.isNotBlank()) addView(action("Refresh") { refresh(sub) })
                 if (sub.supportUrl.startsWith("https://")) addView(action("Provider support") {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(sub.supportUrl)))
