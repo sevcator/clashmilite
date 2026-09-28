@@ -92,7 +92,6 @@ class MiniVpnService : VpnService() {
     private fun stopCoreOnly() {
         if (Clash.isLoaded()) {
             runCatching { Clash.stopTun() }
-            Clash.invokeAction("""{"id":"stop","method":"stopListener","data":null}""") { }
         }
         vpnFd = -1
         running = false
