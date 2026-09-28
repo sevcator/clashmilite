@@ -26,7 +26,7 @@ bash core/build-android-app.sh
 
 The script fetches pinned [`libmihomo-android`](https://github.com/oviron/libmihomo-android) and Mihomo revisions, applies the core patch, builds the native library and Android app, then writes `dist/Mini-Clash-android-universal.apk`. The APK is a preview signed with the standard Android debug key. The [GitHub Actions workflow](.github/workflows/build-android-app.yml) runs the same build and uploads the APK as an artifact.
 
-Download the [Mini Clash 0.1.0 Android preview APK](https://github.com/sevcator/clashmilite/releases/download/v0.1.0-mini-clash-android-preview/Mini-Clash-android-universal.apk) from the GitHub release. SHA-256: `0f95104e246ad4e35b3279a9cfd0b31e7159e4b8cd1b15adaf54c8563563c0fe`.
+Download the [Mini Clash 0.1.1 Android preview APK](https://github.com/sevcator/mini-clash/releases/download/v0.1.1-mini-clash-android-preview/Mini-Clash-android-universal.apk) from the GitHub release. SHA-256: `ec31eb1342128f1d640cdd43651c079dec1bd4adebc6d444a042720d7b6115`. Preview APKs use a CI debug signing key; uninstall an earlier preview before installing this build. Uninstalling removes locally saved profiles.
 
 ## Core
 
