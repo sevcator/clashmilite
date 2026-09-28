@@ -15,7 +15,7 @@ object SubscriptionRepository {
         connection.connectTimeout = 15000
         connection.readTimeout = 20000
         connection.instanceFollowRedirects = true
-        connection.setRequestProperty("User-Agent", settings.userAgent.ifBlank { "MiniClash/0.1.0 Android" })
+        connection.setRequestProperty("User-Agent", settings.userAgent.ifBlank { "MiniClash/0.1.1 Android" })
         connection.setRequestProperty("Accept", "*/*")
         connection.setRequestProperty("Accept-Language", Locale.getDefault().toLanguageTag())
         if (settings.sendHwid) {

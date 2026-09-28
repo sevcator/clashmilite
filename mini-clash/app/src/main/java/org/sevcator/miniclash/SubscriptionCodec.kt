@@ -11,7 +11,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 data class ImportedProfile(val proxies: List<MutableMap<String, Any>>, val name: String = "")
 
 object SubscriptionCodec {
-    private val schemes = listOf("vless://", "vmess://", "trojan://", "ss://", "hysteria2://", "hy2://", "socks://", "socks5://", "http://", "wireguard://", "wg://")
+    private val schemes = listOf("vless://", "vmess://", "trojan://", "ss://", "hysteria2://", "hy2://", "socks://", "socks5://", "http://", "wireguard://", "wg://", "amneziawg://", "awg://")
     private fun decode(value: String): String {
         val normalized = value.trim().replace('-', '+').replace('_', '/')
         return String(Base64.decode(normalized + "=".repeat((4 - normalized.length % 4) % 4), Base64.DEFAULT), Charsets.UTF_8)
@@ -20,6 +20,8 @@ object SubscriptionCodec {
     fun parse(raw: String): ImportedProfile {
         val text = raw.trim().removePrefix("\uFEFF")
         if (text.isEmpty()) throw IllegalArgumentException("Subscription is empty")
+        if (text.contains("[Interface]", true) && text.contains("[Peer]", true))
+            return unique(ImportedProfile(listOf(parseConf(text))))
         if (text.startsWith("{") || text.startsWith("[")) return unique(parseJson(text))
         if (text.startsWith("proxies:") || text.contains("\nproxies:")) {
             val yaml = Yaml(SafeConstructor(LoaderOptions()))
@@ -31,6 +33,8 @@ object SubscriptionCodec {
         }
         val plain = if (schemes.none { text.startsWith(it, true) } && !text.contains("://"))
             runCatching { decode(text) }.getOrDefault(text) else text
+        if (plain.contains("[Interface]", true) && plain.contains("[Peer]", true))
+            return unique(ImportedProfile(listOf(parseConf(plain))))
         val proxies = plain.lines().mapNotNull { line ->
             val trimmed = line.trim()
             if (schemes.any { trimmed.startsWith(it, true) }) runCatching { parseLink(trimmed) }.getOrNull() else null
@@ -139,6 +143,11 @@ object SubscriptionCodec {
 
     private fun parseLink(link: String): MutableMap<String, Any> {
         val scheme = link.substringBefore("://").lowercase()
+        if (scheme == "amneziawg" || scheme == "awg") {
+            val payload = link.substringAfter("://").substringBefore('#')
+            val name = link.substringAfter('#', "AmneziaWG")
+            return parseConf(decode(payload), Uri.decode(name))
+        }
         if (scheme == "vmess") {
             val json = org.json.JSONObject(decode(link.substringAfter("://")))
             val proxy = mutableMapOf<String, Any>("name" to json.optString("ps", "VMess"), "type" to "vmess",
@@ -218,6 +227,72 @@ object SubscriptionCodec {
         if (network == "ws") proxy["ws-opts"] = mapOf("path" to (query["path"] ?: "/"),
             "headers" to mapOf("Host" to (query["host"] ?: "")))
         if (network == "grpc") proxy["grpc-opts"] = mapOf("grpc-service-name" to (query["serviceName"] ?: ""))
+        return proxy
+    }
+
+    private fun parseConf(text: String, label: String = "WireGuard"): MutableMap<String, Any> {
+        val sections = mutableMapOf<String, MutableMap<String, String>>()
+        var section = ""
+        text.lineSequence().forEach { rawLine ->
+            val line = rawLine.substringBefore('#').trim()
+            if (line.startsWith('[') && line.endsWith(']')) {
+                section = line.removePrefix("[").removeSuffix("]").lowercase()
+                sections.getOrPut(section) { mutableMapOf() }
+            } else if (line.contains('=') && section.isNotBlank()) {
+                sections.getValue(section)[line.substringBefore('=').trim().lowercase()] = line.substringAfter('=').trim()
+            }
+        }
+        val iface = sections["interface"] ?: error("WireGuard interface missing")
+        val peer = sections["peer"] ?: error("WireGuard peer missing")
+        val endpoint = peer["endpoint"] ?: error("WireGuard endpoint missing")
+        val host = endpoint.substringBeforeLast(':').removePrefix("[").removeSuffix("]")
+        val port = endpoint.substringAfterLast(':').toIntOrNull()?.takeIf { it in 1..65535 }
+            ?: error("Invalid WireGuard port")
+        val addresses = iface["address"]?.split(',')?.map { it.trim().substringBefore('/') }
+            ?: error("WireGuard address missing")
+        val proxy = mutableMapOf<String, Any>(
+            "name" to label, "type" to "wireguard", "server" to host, "port" to port,
+            "private-key" to (iface["privatekey"] ?: error("WireGuard private key missing")),
+            "public-key" to (peer["publickey"] ?: error("WireGuard public key missing")),
+            "ip" to (addresses.firstOrNull { ':' !in it } ?: error("WireGuard IPv4 address missing")),
+            "udp" to true)
+        addresses.firstOrNull { ':' in it }?.let { proxy["ipv6"] = it }
+        peer["presharedkey"]?.let { proxy["pre-shared-key"] = it }
+        peer["persistentkeepalive"]?.toIntOrNull()?.let { proxy["persistent-keepalive"] = it }
+        iface["mtu"]?.toIntOrNull()?.let { proxy["mtu"] = it }
+        peer["reserved"]?.let { proxy["reserved"] = it.split(',').mapNotNull { value -> value.trim().toIntOrNull() } }
+        val config = iface + (sections["device"] ?: emptyMap())
+        val fields = listOf("jc", "jmin", "jmax", "s1", "s2", "s3", "s4", "h1", "h2", "h3", "h4",
+            "j1", "j2", "j3", "itime",
+            "i1", "i2", "i3", "i4", "i5", "headerprotectionkey", "contentpaddingaddition", "rekeyaftertime",
+            "rekeytimeout", "rejectaftertime", "keepalivetimeout", "maxhandshakeattempts", "randomtrailers", "disablecookies")
+        if (fields.any { config.containsKey(it) }) {
+            val option = mutableMapOf<String, Any>()
+            val v3 = config.keys.any { it in listOf("headerprotectionkey", "contentpaddingaddition", "rekeyaftertime",
+                "rekeytimeout", "rejectaftertime", "keepalivetimeout", "maxhandshakeattempts", "randomtrailers", "disablecookies") }
+            if (v3 || config["version"] == "3") option["version"] = 3
+            fields.forEach { field ->
+                val value = config[field] ?: return@forEach
+                val outputKey = when (field) {
+                    "headerprotectionkey" -> "header-protection-key"
+                    "contentpaddingaddition" -> "content-padding-addition"
+                    "rekeyaftertime" -> "rekey-after-time"
+                    "rekeytimeout" -> "rekey-timeout"
+                    "rejectaftertime" -> "reject-after-time"
+                    "keepalivetimeout" -> "keepalive-timeout"
+                    "maxhandshakeattempts" -> "max-handshake-attempts"
+                    "randomtrailers" -> "random-trailers"
+                    "disablecookies" -> "disable-cookies"
+                    else -> field
+                }
+                option[outputKey] = when (field) {
+                    "jc", "jmin", "jmax", "s1", "s2", "s3", "s4", "itime" -> value.toIntOrNull() ?: error("Invalid $field")
+                    "randomtrailers", "disablecookies" -> value.lowercase() in listOf("true", "yes", "on", "enabled", "1")
+                    else -> value
+                }
+            }
+            proxy["amnezia-wg-option"] = option
+        }
         return proxy
     }
 }

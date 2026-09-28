@@ -157,7 +157,7 @@ class MainActivity : Activity() {
         chainCard.addView(spacer(13))
         chainCard.addView(action("+  Add next hop") { chooseHop() })
         if (store.chain.isNotEmpty()) chainCard.addView(action("Remove last hop") {
-            store.chain.removeAt(store.chain.lastIndex); store.save(); render()
+            store.chain.removeAt(store.chain.lastIndex); applyRouteChange(); render()
         })
         addCard(chainCard)
         addCard(card().apply {
@@ -199,11 +199,11 @@ class MainActivity : Activity() {
                     })
                 }
                 addView(spacer(10))
-                addView(action("Use") { store.activeId = sub.id; store.chain.clear(); store.save(); page = "home"; render() })
+                addView(action("Use") { store.activeId = sub.id; store.chain.clear(); applyRouteChange(); page = "home"; render() })
                 if (servers.isNotEmpty()) addView(action("Choose server") {
                     AlertDialog.Builder(this@MainActivity).setTitle(sub.title).setItems(servers.toTypedArray()) { _, index ->
                         store.activeId = sub.id; store.chain.clear(); store.chain += servers[index]
-                        store.save(); page = "home"; render()
+                        applyRouteChange(); page = "home"; render()
                     }.show()
                 })
                 if (sub.url.isNotBlank()) addView(action("Refresh") { refresh(sub) })
@@ -214,7 +214,10 @@ class MainActivity : Activity() {
                     AlertDialog.Builder(this@MainActivity).setMessage("Delete ${sub.title}?").setNegativeButton("Cancel", null)
                         .setPositiveButton("Delete") { _, _ ->
                             store.subscriptions.remove(sub)
-                            if (store.activeId == sub.id) { store.activeId = ""; store.chain.clear() }
+                            if (store.activeId == sub.id) {
+                                store.activeId = ""; store.chain.clear()
+                                if (MiniVpnService.running) startService(Intent(this@MainActivity, MiniVpnService::class.java).setAction(MiniVpnService.ACTION_STOP))
+                            }
                             store.save(); render()
                         }.show()
                 })
@@ -275,7 +278,9 @@ class MainActivity : Activity() {
                         store.chain.retainAll(parsed.proxies.map { it["name"].toString() }.toSet())
                         if (store.chain.isEmpty()) store.chain += parsed.proxies.first()["name"].toString()
                     }
-                    store.save(); render()
+                    store.save()
+                    if (store.activeId == sub.id && MiniVpnService.running) launchService()
+                    render()
                 }
             } catch (exception: Exception) { runOnUiThread { message(exception.message ?: "Refresh failed") } }
         }
@@ -288,7 +293,7 @@ class MainActivity : Activity() {
             .filterNot { it in store.chain }
         if (servers.isEmpty()) return message("No more servers available")
         AlertDialog.Builder(this).setTitle("Choose next hop").setItems(servers.toTypedArray()) { _, index ->
-            store.chain += servers[index]; store.save(); render()
+            store.chain += servers[index]; applyRouteChange(); render()
         }.show()
     }
 
@@ -298,7 +303,7 @@ class MainActivity : Activity() {
             .getOrElse { return message(it.message ?: "Profile unavailable") }
             .filter { it == store.chain[index] || it !in store.chain }
         AlertDialog.Builder(this).setTitle("Change hop ${index + 1}").setItems(choices.toTypedArray()) { _, choice ->
-            store.chain[index] = choices[choice]; store.save(); render()
+            store.chain[index] = choices[choice]; applyRouteChange(); render()
         }.show()
     }
 
@@ -325,6 +330,11 @@ class MainActivity : Activity() {
         handler.postDelayed({ render() }, 1500)
     }
 
+    private fun applyRouteChange() {
+        store.save()
+        if (MiniVpnService.running) launchService()
+    }
+
     private fun settingsPage() {
         val s = store.settings
         addCard(card().apply {
@@ -337,7 +347,7 @@ class MainActivity : Activity() {
         })
         addCard(card().apply {
             addView(text("SUBSCRIPTIONS", 12f, accent, true)); addView(spacer(10))
-            field("User Agent", s.userAgent, "MiniClash/0.1.0 Android") { s.userAgent = it }
+            field("User Agent", s.userAgent, "MiniClash/0.1.1 Android") { s.userAgent = it }
             field("HWID override", s.hwid, "Android ID by default") { s.hwid = it }
             addView(text("For a subscription tied to Happ, enter the HWID shown in Happ here.", 12f, muted))
             toggle("Send HWID to subscription", s.sendHwid) { s.sendHwid = it }
@@ -366,7 +376,9 @@ class MainActivity : Activity() {
         })
         addCard(action("Save settings", true) {
             if (s.port.isNotBlank() && s.port.toIntOrNull()?.let { it in 1..65535 } != true) return@action message("Port must be 1-65535")
-            store.save(); message("Settings saved")
+            store.save()
+            if (MiniVpnService.running) launchService()
+            message("Settings saved")
         })
     }
 

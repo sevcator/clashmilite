@@ -4,16 +4,16 @@ Mini Clash is a small Android VPN and proxy manager built around a patched [Miho
 
 ## Android app
 
-- Import a Clash YAML/JSON profile, a common Xray JSON outbound profile, or a plain/Base64 subscription of VLESS, VMess, Trojan, Shadowsocks, Hysteria2, SOCKS5, HTTP proxy, and WireGuard links.
+- Import a Clash YAML/JSON profile, a common Xray JSON outbound profile, WireGuard/AmneziaWG `.conf`, or a plain/Base64 subscription of VLESS, VMess, Trojan, Shadowsocks, Hysteria2, SOCKS5, HTTP proxy, and WireGuard links.
 - Add and refresh URL subscriptions. Show provider title, description, traffic usage, expiration, and support URL when supplied by subscription headers or body metadata.
-- Choose a server and add extra hops on the home screen. `GLOBAL → VLESS → WARP` configures WARP with `dialer-proxy: VLESS` in Mihomo.
+- Choose a server and add extra hops on the home screen. `GLOBAL → VLESS → WARP` configures WARP with `dialer-proxy: VLESS` in Mihomo. Route edits reconnect the active tunnel.
 - Start Android TUN with system VPN consent, or run only the local mixed HTTP/SOCKS proxy.
 - Settings: randomized local port and proxy credentials when left blank, IPv6, profile key overwrite, log level (off by default), User Agent, optional HWID headers, and TUN.
 - Profiles and settings are stored locally. Subscription requests go to URLs the user imports.
 
 The HWID default is Android's `ANDROID_ID`, matching Happ 4.4.1's method. Android scopes this ID to each app signing key, so Mini Clash usually reads a **different value** from Happ on the same device. For a subscription already tied to Happ, copy the HWID shown in Happ into Mini Clash's override field. Mini Clash sends it only when **Send HWID to subscription** is enabled. The app sends `X-HWID`, `X-Device-ID`, and device headers; it does not reproduce Happ's private `X-Credential` token.
 
-Current import scope: standard link lists, Clash YAML/JSON, and VLESS, VMess, Trojan, and Shadowsocks outbounds from Xray JSON. Plain `happ://add/` and `incy://add/` links and INCY's public `incy://crypt1` format are accepted. Encrypted `happ://crypt*` links, advanced Xray JSON routing, and AmneziaWG links need separate support and are not accepted yet. Do not expect providers that require those formats or Happ's private credential token to work. No Android device or emulator connection run has been completed yet.
+Current import scope: standard link lists, Clash YAML/JSON, basic WireGuard/AmneziaWG `.conf`, and VLESS, VMess, Trojan, and Shadowsocks outbounds from Xray JSON. Plain `happ://add/` and `incy://add/` links and INCY's public `incy://crypt1` format are accepted. Encrypted `happ://crypt*` links and advanced Xray JSON routing are not accepted yet. Do not expect providers that require those formats or Happ's private credential token to work. No Android device or emulator connection run has been completed yet.
 
 ## Build Android APK
 
