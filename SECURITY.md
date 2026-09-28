@@ -2,8 +2,8 @@
 
 ## Supported Versions
 
-Version support: The latest beta version and stable version, refer to https://github.com/KaringX/clashmi/releases
+Mini Clash is currently a preview. Security fixes target the latest Android build and patched core source.
 
 ## Reporting a Vulnerability
 
-You can report the vulnerabilities you encounter through github issue: https://github.com/KaringX/clashmi/issues
+Report vulnerabilities privately through GitHub's security advisory flow for `sevcator/clashmilite`.

@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run on Linux with Flutter 3.35.7, Go 1.27, Java 17 and Android NDK 28.
+# Build Mini Clash for Android with the patched Mihomo core.
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
-work_root="$repo_root/core/_work/android-app"
-app_rev=56a66d01e87fe7cfb11f46eda8808d094c65f568
+work_root="$repo_root/core/_work/mini-clash"
 wrapper_rev=d8cbe8c42acbe5c35e6b31ced324f0f928322fc2
 core_rev=ab405bad5beeeac8b003bb01f60f134f6df54471
 
@@ -20,20 +19,11 @@ fetch_revision() {
   [[ "$(git -C "$target" rev-parse HEAD)" == "$revision" ]]
 }
 
-mkdir -p "$work_root" "$repo_root/dist"
-fetch_revision https://github.com/oviron/FlClash.git "$app_rev" "$work_root/app"
+mkdir -p "$work_root" "$repo_root/mini-clash/app/libs" "$repo_root/dist"
 fetch_revision https://github.com/oviron/libmihomo-android.git "$wrapper_rev" "$work_root/wrapper"
 fetch_revision https://github.com/MetaCubeX/mihomo.git "$core_rev" "$work_root/mihomo"
 
-git -C "$work_root/app" apply "$repo_root/core/patches/flclash-android-lite.patch"
 git -C "$work_root/mihomo" apply "$repo_root/core/patches/mihomo-reality-client-version.patch"
-
-for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-  cp "$repo_root/android/app/src/main/res/mipmap-$density/ic_launcher.png" \
-    "$work_root/app/android/app/src/main/res/mipmap-$density/ic_launcher_lite.png"
-done
-cp "$repo_root/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" \
-  "$work_root/app/assets/images/icon.png"
 
 go -C "$work_root/wrapper/src/main/jni/core" mod edit \
   -replace "github.com/metacubex/mihomo=$work_root/mihomo"
@@ -50,22 +40,14 @@ export ANDROID_NDK="${ANDROID_NDK:-$ANDROID_HOME/ndk/28.0.13004108}"
 
 aar="$work_root/wrapper/build/outputs/aar/libmihomo-android-release.aar"
 [[ -s "$aar" ]]
-mkdir -p "$work_root/app/android/core/libs"
-cp "$aar" "$work_root/app/android/core/libs/libmihomo-android-v0.3.5.aar"
+cp "$aar" "$repo_root/mini-clash/app/libs/libmihomo-android.aar"
 
 (
-  cd "$work_root/app"
-  printf '{"APP_ENV":"pre"}\n' > env.json
-  flutter pub get
-  flutter build apk --release --split-per-abi \
-    --target-platform android-arm,android-arm64,android-x64 \
-    --dart-define-from-file=env.json
+  cd "$repo_root/mini-clash"
+  ./gradlew :app:assembleRelease --no-daemon
 )
 
-for abi in armeabi-v7a arm64-v8a x86_64; do
-  apk="$work_root/app/build/app/outputs/flutter-apk/app-$abi-release.apk"
-  [[ -s "$apk" ]]
-  cp "$apk" "$repo_root/dist/Clash-Mi-Lite-android-$abi.apk"
-done
-
-sha256sum "$repo_root"/dist/Clash-Mi-Lite-android-*.apk
+apk="$repo_root/mini-clash/app/build/outputs/apk/release/app-release.apk"
+[[ -s "$apk" ]]
+cp "$apk" "$repo_root/dist/Mini-Clash-android-universal.apk"
+sha256sum "$repo_root/dist/Mini-Clash-android-universal.apk"

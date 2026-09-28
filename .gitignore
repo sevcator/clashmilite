@@ -75,3 +75,6 @@ ios/clashmiWidget/VpnServiceHandler.swift
 /dist
 /core/_work/
 /core/mihomo/
+/mini-clash/.gradle/
+/mini-clash/app/build/
+/mini-clash/app/libs/

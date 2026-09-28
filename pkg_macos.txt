@@ -1,3 +1,0 @@
-appdmg macos/packaging/appdmg_make_config.json dist/clashmi_1.0.30.1605_macos_universal.dmg
-macos/packaging/pkg/pkg.sh
-macos/packaging/dmg/dmg.sh

@@ -1,14 +1,13 @@
-name: Build Android APK
+name: Build Mini Clash Android APK
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
+      - mini-clash/**
       - core/build-android-app.sh
-      - core/patches/flclash-android-lite.patch
       - core/patches/mihomo-reality-client-version.patch
-      - android/app/src/main/res/mipmap-*/ic_launcher.png
       - .github/workflows/build-android-app.yml
 
 jobs:
@@ -25,19 +24,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: subosito/flutter-action@v2.23.0
-        with:
-          channel: stable
-          flutter-version: 3.35.7
-          cache: true
       - name: Install Android SDK and NDK
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.0.13004108" "cmake;3.22.1" "platforms;android-36"
-      - name: Build patched Android app
+      - name: Build patched core and app
         run: bash core/build-android-app.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: clash-mi-lite-android-apks
-          path: dist/Clash-Mi-Lite-android-*.apk
+          name: mini-clash-android-apk
+          path: dist/Mini-Clash-android-universal.apk
           if-no-files-found: error
