@@ -480,8 +480,52 @@ index 6443637..8ef8008 100644
          } else {
            await appController.handleBackOrExit();
          }
+diff --git a/lib/pages/scan.dart b/lib/pages/scan.dart
+index 1f1164a..cb4f91f 100644
+--- a/lib/pages/scan.dart
++++ b/lib/pages/scan.dart
+@@ -187,16 +187,11 @@ class ScannerOverlay extends CustomPainter {
+   void paint(Canvas canvas, Size size) {
+     final backgroundPath = Path()..addRect(Rect.largest);
+ 
+-    final cutoutPath = Path()
+-      ..addRSuperellipse(
+-        RSuperellipse.fromRectAndCorners(
+-          scanWindow,
+-          topLeft: Radius.circular(borderRadius),
+-          topRight: Radius.circular(borderRadius),
+-          bottomLeft: Radius.circular(borderRadius),
+-          bottomRight: Radius.circular(borderRadius),
+-        ),
+-      );
++    final border = RRect.fromRectAndRadius(
++      scanWindow,
++      Radius.circular(borderRadius),
++    );
++    final cutoutPath = Path()..addRRect(border);
+ 
+     final backgroundPaint = Paint()
+       ..color = Colors.black.opacity50
+@@ -214,16 +209,8 @@ class ScannerOverlay extends CustomPainter {
+       ..style = PaintingStyle.stroke
+       ..strokeWidth = 4.0;
+ 
+-    final border = RSuperellipse.fromRectAndCorners(
+-      scanWindow,
+-      topLeft: Radius.circular(borderRadius),
+-      topRight: Radius.circular(borderRadius),
+-      bottomLeft: Radius.circular(borderRadius),
+-      bottomRight: Radius.circular(borderRadius),
+-    );
+-
+     canvas.drawPath(backgroundWithCutout, backgroundPaint);
+-    canvas.drawRSuperellipse(border, borderPaint);
++    canvas.drawRRect(border, borderPaint);
+   }
+ 
+   @override
 diff --git a/lib/views/dashboard/dashboard.dart b/lib/views/dashboard/dashboard.dart
-index ae06014..0460136 100644
+index ae06014..9c228ce 100644
 --- a/lib/views/dashboard/dashboard.dart
 +++ b/lib/views/dashboard/dashboard.dart
 @@ -7,13 +7,14 @@ import 'package:fl_clash/controller.dart';
@@ -558,7 +602,7 @@ index ae06014..0460136 100644
 +                    tooltip: appLocalizations.addProfile,
 +                    position: PopupMenuPosition.under,
 +                    onSelected: _handleImportAction,
-+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
++                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
 +                    itemBuilder: (_) => [
 +                      _importMenuItem(0, Icons.link_rounded, appLocalizations.importFromURL),
 +                      _importMenuItem(1, Icons.content_paste_rounded, appLocalizations.paste),
@@ -1187,6 +1231,99 @@ index f96f91a..ae8fc24 100644
      );
    }
  }
+diff --git a/lib/views/profiles/edit.dart b/lib/views/profiles/edit.dart
+index 7ae5d52..03288ad 100644
+--- a/lib/views/profiles/edit.dart
++++ b/lib/views/profiles/edit.dart
+@@ -223,7 +223,9 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
+           textInputAction: TextInputAction.next,
+           controller: _labelController,
+           decoration: InputDecoration(
+-            border: const OutlineInputBorder(),
++            filled: true,
++            fillColor: context.colorScheme.surfaceContainerLow,
++            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+             labelText: appLocalizations.name,
+           ),
+           validator: (String? value) {
+@@ -243,7 +245,9 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
+             maxLines: 5,
+             minLines: 1,
+             decoration: InputDecoration(
+-              border: const OutlineInputBorder(),
++              filled: true,
++              fillColor: context.colorScheme.surfaceContainerLow,
++              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+               labelText: appLocalizations.url,
+             ),
+             validator: (String? value) {
+@@ -270,7 +274,9 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
+               textInputAction: TextInputAction.next,
+               controller: _autoUpdateDurationController,
+               decoration: InputDecoration(
+-                border: const OutlineInputBorder(),
++                filled: true,
++                fillColor: context.colorScheme.surfaceContainerLow,
++                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                 labelText: appLocalizations.autoUpdateInterval,
+               ),
+               validator: (String? value) {
+@@ -336,28 +342,35 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
+         _handleBack();
+         return false;
+       },
+-      child: FloatLayout(
+-        floatingWidget: FloatWrapper(
+-          child: FloatingActionButton.extended(
+-            heroTag: null,
+-            onPressed: _handleConfirm,
+-            label: Text(appLocalizations.save),
+-            icon: const Icon(Icons.save),
++      child: Column(
++        children: [
++          Expanded(
++            child: Form(
++              key: _formKey,
++              child: ListView.separated(
++                padding: kMaterialListPadding.copyWith(top: 8, bottom: 20),
++                itemBuilder: (_, index) => items[index],
++                separatorBuilder: (_, _) => const SizedBox(height: 12),
++                itemCount: items.length,
++              ),
++            ),
+           ),
+-        ),
+-        child: Form(
+-          key: _formKey,
+-          child: ListView.separated(
+-            padding: kMaterialListPadding.copyWith(top: 8, bottom: 72),
+-            itemBuilder: (_, index) {
+-              return items[index];
+-            },
+-            separatorBuilder: (_, _) {
+-              return const SizedBox(height: 12);
+-            },
+-            itemCount: items.length,
++          SafeArea(
++            top: false,
++            child: Padding(
++              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
++              child: SizedBox(
++                width: double.infinity,
++                height: 52,
++                child: FilledButton.icon(
++                  onPressed: _handleConfirm,
++                  icon: const Icon(Icons.save_outlined),
++                  label: Text(appLocalizations.save),
++                ),
++              ),
++            ),
+           ),
+-        ),
++        ],
+       ),
+     );
+   }
 diff --git a/lib/views/profiles/profiles.dart b/lib/views/profiles/profiles.dart
 index 4d9f6f9..cb2f97c 100644
 --- a/lib/views/profiles/profiles.dart
@@ -1601,6 +1738,33 @@ index 681f721..93cbb79 100644
        title: Text(context.appLocalizations.developerMode),
        delegate: const OpenDelegate(widget: DeveloperView()),
      );
+diff --git a/lib/widgets/card.dart b/lib/widgets/card.dart
+index 5860d3f..d665929 100644
+--- a/lib/widgets/card.dart
++++ b/lib/widgets/card.dart
+@@ -185,8 +185,8 @@ class CommonCard extends StatelessWidget {
+       style: ButtonStyle(
+         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+         shape: WidgetStatePropertyAll(
+-          RoundedSuperellipseBorder(
+-            borderRadius: BorderRadius.circular(radius ?? 14),
++          RoundedRectangleBorder(
++            borderRadius: BorderRadius.circular(radius ?? 16),
+           ),
+         ),
+         iconColor: WidgetStatePropertyAll(context.colorScheme.primary),
+diff --git a/lib/widgets/dialog.dart b/lib/widgets/dialog.dart
+index 3d48bd7..d36fb65 100644
+--- a/lib/widgets/dialog.dart
++++ b/lib/widgets/dialog.dart
+@@ -27,6 +27,7 @@ class CommonDialog extends ConsumerWidget {
+     final size = ref.watch(viewSizeProvider);
+     return AlertDialog(
+       title: Text(title),
++      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+       actions: actions,
+       contentPadding: padding,
+       backgroundColor: backgroundColor,
 diff --git a/lib/widgets/list.dart b/lib/widgets/list.dart
 index b20537f..897890c 100644
 --- a/lib/widgets/list.dart
@@ -1644,8 +1808,25 @@ index b20537f..897890c 100644
                    ),
                  ),
                  if (subTitle != null)
+diff --git a/lib/widgets/popup.dart b/lib/widgets/popup.dart
+index 59cd0f4..2620026 100644
+--- a/lib/widgets/popup.dart
++++ b/lib/widgets/popup.dart
+@@ -221,10 +221,10 @@ class CommonPopupMenu extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return Card(
+-      elevation: 12,
++      elevation: 6,
+       color: context.colorScheme.surfaceContainer,
+       clipBehavior: Clip.antiAlias,
+-      shape: RoundedSuperellipseBorder(borderRadius: BorderRadius.circular(14)),
++      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+       child: IntrinsicWidth(
+         child: _CommonPopupMenuItems(
+           items: items,
 diff --git a/pubspec.yaml b/pubspec.yaml
-index e67fa55..5aefcb7 100755
+index e67fa55..aba1ab6 100755
 --- a/pubspec.yaml
 +++ b/pubspec.yaml
 @@ -1,7 +1,7 @@
@@ -1653,7 +1834,7 @@ index e67fa55..5aefcb7 100755
  description: Android mihomo client. Open source, no ads, no telemetry.
  publish_to: 'none'
 -version: 0.17.0-rc6+2026092703
-+version: 0.2.0+2026092801
++version: 0.2.1+2026092802
  environment:
    sdk: '>=3.8.0 <4.0.0'
  
